@@ -1,18 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mocu/routes.dart';
+import 'package:mocu/constant.dart';
 import 'package:mocu/pages/welcome.dart';
-
 void main() {
   runApp(const MyApp());
-}
-
-extension HexColor on Color {
-  static Color fromHex(String hexString) {
-    final buffer = StringBuffer();
-    if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
-    buffer.write(hexString.replaceFirst('#', ''));
-    return Color(int.parse(buffer.toString(), radix: 16));
-  }
 }
 
 class MyApp extends StatelessWidget {
@@ -39,7 +30,7 @@ class MyApp extends StatelessWidget {
         //
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: HexColor.fromHex('#38b6ff')),
+        colorScheme: ColorScheme.fromSeed(seedColor: skyBlue),
         useMaterial3: true,
       ),
       onGenerateRoute: AppRoutes.onGenerateRoutes,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:mocu/pages/welcome.dart';
-
-
+import 'package:mocu/pages/matching/matching.dart';
+import 'package:mocu/pages/matching/matching_play.dart';
 // import 'package:matching/models/screen.dart';
 
 class AppRoutes {
@@ -11,10 +11,10 @@ class AppRoutes {
     // ScreenArguments? arguments = settings.arguments as ScreenArguments?;
     
     switch (settings.name) {
-      // case '/register':
-      //   return _materialRoute(const Register());
-      // case '/home':
-      //   return _materialRoute(Home(arguments: arguments));
+      case '/matching':
+        return _materialRoute(const Matching());
+      case '/matching-play':
+        return _materialRoute(const MatchingPlay());
       // case '/game1':
       //   return _materialRoute(Game1(arguments: arguments));
       // case '/game2':
