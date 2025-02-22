@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mocu/utils/color.dart';
 
 String fontFamilyDynaPuff = "DynaPuff";
+String fontFamilyDinoRegular = "Dino";
 
 Color white = Colors.white70;
 Color black = Colors.black87;

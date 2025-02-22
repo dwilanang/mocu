@@ -34,7 +34,10 @@ class _WelcomeState extends State<Welcome> {
      return Scaffold(
         backgroundColor: skyBlue,
         body:  Center(
-            child: Lottie.asset('assets/animation/splash-screen.json')
+            child: Lottie.asset(
+              'assets/animation/splash-screen.json',
+              fit: BoxFit.fill
+            )
         )
      );
   }

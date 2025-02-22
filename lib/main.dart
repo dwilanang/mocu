@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mocu/routes.dart';
 import 'package:mocu/constant.dart';
-import 'package:mocu/pages/welcome.dart';
+import 'package:mocu/pages/matching/matching.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
       ),
       onGenerateRoute: AppRoutes.onGenerateRoutes,
       debugShowCheckedModeBanner: false,
-      home: const Welcome(),
+      home: const Matching(),
     );
   }
 }
