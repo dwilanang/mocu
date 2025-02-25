@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/Users/dwilanang/Documents/PROJECT/mobile/hybrid/flutter/sdk/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/dwilanang/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/dwilanang/Documents/PROJECT/mobile/hybrid/flutter/mocu/android/app/.cxx/RelWithDebInfo/4i181a4s/x86_64",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/dwilanang/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/dwilanang/Documents/PROJECT/mobile/hybrid/flutter/mocu/android/app/.cxx/RelWithDebInfo/4i181a4s/x86_64",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}
