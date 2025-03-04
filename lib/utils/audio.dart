@@ -1,40 +1,50 @@
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 
 class AudioUtils {
   final Map<String, AudioPlayer> _soundPlayers = {};
 
-  void play(String name, {Function? onComplete, bool loop = false}) async {
-    if (_soundPlayers.containsKey(name)) {
-      await _soundPlayers[name]!.stop();
-    } else {
-      _soundPlayers[name] = AudioPlayer();
-    }
+  Future<void> play(String name, {Function? onComplete, bool loop = false}) async {
+    AudioPlayer player = AudioPlayer();
+    _soundPlayers[name] = player;
 
-    _soundPlayers[name]!.onPlayerComplete.listen((event) {
-      if (onComplete != null) {
-        onComplete();
+    player.playerStateStream.listen((state) {
+      if (state.processingState == ProcessingState.completed) {
+        if (onComplete != null) {
+          onComplete();
+        }
+        if (!loop) {
+          player.stop();
+        }
       }
     });
 
     if (loop) {
-      _soundPlayers[name]!.setReleaseMode(ReleaseMode.loop);
+      await player.setLoopMode(LoopMode.one);
     } else {
-      _soundPlayers[name]!.setReleaseMode(ReleaseMode.stop);
+      await player.setLoopMode(LoopMode.off);
     }
 
-    await _soundPlayers[name]!.setSource(AssetSource('audios/$name.wav'));
-    await _soundPlayers[name]!.resume();
+    await player.setAsset('assets/audios/$name.wav');
+    await player.play();
   }
 
-  void stop(String name) async {
+  Future<void> stop(String name) async {
     if (_soundPlayers.containsKey(name)) {
       await _soundPlayers[name]!.stop();
+      _soundPlayers.remove(name);
     }
   }
 
-  void stopAll() async {
+  Future<void> stopAll() async {
     for (var player in _soundPlayers.values) {
       await player.stop();
+    }
+    _soundPlayers.clear();
+  }
+
+  Future<void> setVolume(String name, double volume) async {
+    if (_soundPlayers.containsKey(name)) {
+      await _soundPlayers[name]!.setVolume(volume);
     }
   }
 }

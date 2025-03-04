@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:mocu/constant.dart';
-import 'package:mocu/pages/matching/matching.dart';
 
 class Welcome extends StatefulWidget {
   const Welcome({super.key});
@@ -17,8 +15,9 @@ class _WelcomeState extends State<Welcome> {
   startSplashScreen() async {
     var duration = const Duration(seconds: 2);
     return Timer(duration, () {
-      Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const Matching()));
+      Navigator.pushNamed(context, '/games');
+      // Navigator.of(context).pushReplacement(
+          // MaterialPageRoute(builder: (context) => const Games()));
     });
   }
 
@@ -34,10 +33,11 @@ class _WelcomeState extends State<Welcome> {
      return Scaffold(
         backgroundColor: skyBlue,
         body:  Center(
-            child: Lottie.asset(
-              'assets/animation/splash-screen.json',
-              fit: BoxFit.fill
-            )
+            child: Container()
+            // Lottie.asset(
+            //   'assets/animation/splash-screen.json',
+            //   fit: BoxFit.fill
+            // )
         )
      );
   }

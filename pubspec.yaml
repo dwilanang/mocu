@@ -35,9 +35,10 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  lottie: ^3.2.0
   flutter_svg: ^2.0.17
-  audioplayers: ^6.2.0
+  just_audio: ^0.9.18
+  rive: ^0.13.20
+  circular_countdown_timer: ^0.2.4
 
 dev_dependencies:
   flutter_test:
@@ -64,12 +65,9 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/animation/
-    - assets/animation/matching/
     - assets/images/
     - assets/images/matching/
-    - assets/audios/loading.wav
-    - assets/audios/backsound.wav
-    - assets/audios/click.wav
+    - assets/audios/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

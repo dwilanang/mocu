@@ -1,43 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-showAlertDialog(BuildContext context, String title, String titleButton, Widget content, ActionCallback callback) {
-
+void showAlertDialog(BuildContext context, String title, String buttonName, Widget content, ActionCallback callback) {
   // set up the AlertDialog
   AlertDialog alert = AlertDialog(
-    content: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-            Text(title,
-              style: const TextStyle(
+    content: Stack(
+      children: [
+          SvgPicture.asset(
+            "assets/images/bgitem.svg",
+            fit: BoxFit.cover,
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
                   color: Colors.black,
                   fontSize: 25.0,
                   fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            content,
-        ],
+              content,
+            ],
+        )
+      ],
     ),
     actions: [
-      TextButton(
-        style: ButtonStyle(
-          foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
-          backgroundColor: MaterialStateProperty.all<Color>(Colors.black),
+      
+      GestureDetector(
+        onTapDown: (_) {
+            callback();
+        },
+        child: SvgPicture.asset(
+          "assets/images/$buttonName.svg",
+          width: 100,
+          fit: BoxFit.contain,
         ),
-        // ignore: unnecessary_null_comparison
-        onPressed: callback,
-        child: Text(titleButton),
       ),
     ],
+    actionsAlignment:MainAxisAlignment.center,
     backgroundColor: Colors.white,
   );
+
   // show the dialog
   showDialog(
     context: context,
     builder: (BuildContext context) {
       return alert;
     },
-    barrierDismissible : false
+    barrierDismissible: false,
   );
 }
 
