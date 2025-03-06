@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:rive/rive.dart';
 import 'package:circular_countdown_timer/circular_countdown_timer.dart';
@@ -7,6 +8,9 @@ import 'package:mocu/constant.dart';
 import 'package:mocu/helper/helper.dart';
 import 'package:mocu/utils/alert.dart';
 import 'package:mocu/utils/audio.dart';
+import 'package:mocu/utils/animation.dart';
+import 'package:mocu/widget/rating.dart';
+import 'package:mocu/provider/action.dart';
 
 class Matching extends StatefulWidget {
   const Matching({super.key});
@@ -16,14 +20,21 @@ class Matching extends StatefulWidget {
   _MatchingState createState() => _MatchingState();
 }
 
-class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin {
+class _MatchingState extends State<Matching> with TickerProviderStateMixin {
+  
+  late final AnimationController _animationControllerGroupCharacter;
+  late final AnimationController _animationControllerSound;
+
+  late final Animation<double> _animationGroupCharacter;
+  late final Animation<double> _animationSound;
+
   final Map<int, String> _pointPlay = {};
 
   final AudioUtils _audioUtils = AudioUtils();
   List<int> _itemsLeft = [], _itemsRight = [];
   Map<int, bool> _itemMatch = {};
 
-  final Map<int, int> _limitPlayLevel = {1:3, 2:2, 3:1};
+  final Map<int, int> _limitPlayLevel = {1: 3, 2: 2, 3: 1};
 
   final CountDownController _controllerCountDown = CountDownController();
 
@@ -32,11 +43,34 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
 
   int _levelPlay = 1;
   int _limitPlay = 0;
-  
 
+  bool _soundMode = true;
+
+  int _itemNotMatch = 0;
+  
   @override
   void initState() {
     super.initState();
+
+    var soundAnimation = AnimationUtils.createAnimation(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      begin: 1.0,
+      end: 1.2,
+    );
+
+    _animationControllerSound = soundAnimation['controller'];
+    _animationSound = soundAnimation['animation'];
+
+    var groupCharacterAnimation = AnimationUtils.createAnimationRepeat(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+      begin: 0.9,
+      end: 1.0,
+    );
+
+    _animationControllerGroupCharacter = groupCharacterAnimation['controller'];
+    _animationGroupCharacter = groupCharacterAnimation['animation'];
 
     _itemsLeft = List<int>.generate(4, (i) => i + 1);
     _itemsRight = List<int>.generate(4, (i) => i + 1);
@@ -45,17 +79,18 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
 
     _limitPlay = _limitPlayLevel[_levelPlay]!;
 
-    // _audioUtils.play("backsound", loop: true);
-    // _audioUtils.setVolume("backsound", 0.3); // Set volume backsound to 30%
-
+    _audioUtils.play('start');
   }
 
   @override
   void dispose() {
     _audioUtils.stopAll();
+    _animationControllerGroupCharacter.dispose();
+    _animationControllerSound.dispose(); // Pastikan untuk dispose controller sound
     super.dispose();
   }
 
+  // context.read<ActionProvider>().setExecAction("page", true);
   String _itemImageAssetName(dynamic name) {
     return "assets/images/$name.svg";
   }
@@ -64,23 +99,31 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
     return "assets/animation/$name.riv";
   }
 
-  Widget _itemAnimationBoxWidget(double itemWidth, itemHeight, Widget content) {
+  Widget _itemAnimationBoxWidget(double itemWidth, itemHeight, Widget content, Color itemColor) {
     return Container(
       width: itemWidth,
       height: itemHeight,
       margin: const EdgeInsets.all(5.0),
       decoration: BoxDecoration(
-        color: white,
+        color: itemColor,
         shape: BoxShape.circle, // Bentuk bulat
       ),
       child: content,
     );
   }
 
-  Widget _itemAnimationWidget(dynamic name, double itemWidth, itemHeight) {
+  Widget _itemAnimationWidget(dynamic name) {
     return RiveAnimation.asset(
       _itemAnimationAssetName(name),
       fit: BoxFit.fitHeight,
+    );
+  }
+
+   Widget _itemImageWidget(dynamic name) {
+    return SvgPicture.asset(
+      _itemImageAssetName("items/$name"),
+      width: 130.0,
+      fit: BoxFit.contain,
     );
   }
 
@@ -125,29 +168,59 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
         children: [
           Expanded(
             child: Container(
-                width: screenWidth / 3,
-                height: double.infinity,
-                margin: const EdgeInsets.all(5.0),
-                decoration: BoxDecoration(
-                  color: skyBlue,
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Center(
-                  child: Text(
-                    "Level : $_levelPlay",
-                    style: TextStyle(
-                      color: white,
-                      fontFamily: fontFamilyDynaPuff,
-                      fontSize: 25.0,
-                    ),
+              width: screenWidth / 3,
+              height: double.infinity,
+              margin: const EdgeInsets.all(5.0),
+              decoration: BoxDecoration(
+                color: skyBlue,
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Center(
+                child: Text(
+                  "Level : $_levelPlay",
+                  style: TextStyle(
+                    color: white,
+                    fontFamily: fontFamilyDynaPuff,
+                    fontSize: 25.0,
                   ),
                 ),
-              )
+              ),
+            ),
           ),
           Expanded(
             child: SizedBox(
               width: screenWidth / 3,
               height: double.infinity,
+              child: Center(
+                child: GestureDetector(
+                  onTapDown: (_) {
+                    _audioUtils.play("click");
+                    _animationControllerSound.forward();
+                    setState(() {
+                      _soundMode = !_soundMode;
+
+                      context.read<ActionProvider>().setExecAction('sound', _soundMode);
+                    });
+                  },
+                  onTapCancel: () {
+                    _animationControllerSound.reverse();
+                  },
+                  child: AnimatedBuilder(
+                    animation: _animationSound,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _animationSound.value,
+                        child: child,
+                      );
+                    },
+                    child: SvgPicture.asset(
+                      _soundMode ? "assets/images/soundon.svg" : "assets/images/soundoff.svg",
+                      width: 75,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
           Expanded(
@@ -177,36 +250,36 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
                   Expanded(
                     child: _timerCountDownWidget((String result) {
                       if (result == "complete") {
-                          if (isComplete) {
-                            return;
-                          }
+                        if (isComplete) {
+                          return;
+                        }
 
-                          if (_limitPlay > 0) {
-                            _audioUtils.play('timeup');
+                        if (_limitPlay > 0) {
+                          _audioUtils.play('timeup');
 
-                            showAlertDialog(
-                              context,
-                              "Heeem Time UP, Try Again!",
-                              'continue',
-                              Center(
-                                child: SvgPicture.asset(
-                                  _itemImageAssetName('fail'),
-                                  fit: BoxFit.cover,
-                                )
+                          showAlertDialog(
+                            context,
+                            "Heeem Time UP!",
+                            'continue',
+                            Center(
+                              child: SvgPicture.asset(
+                                _itemImageAssetName('fail'),
+                                width: 100.0,
+                                fit: BoxFit.cover,
                               ),
-                              () {
-                                _increaseLimitPlay();
-                                _restartPlay();
-                                Navigator.pop(context);
-                              },
-                            );
-                          }
+                            ),
+                            () {
+                              _increaseLimitPlay();
+                              _restartPlay();
+                              Navigator.pop(context);
+                            },
+                            "Try Again",
+                          );
+                        }
                       } else {
-                          if (result != "0"){
-                              _pointPlay[_levelPlay] = result;
-                          }
-                         
-                          _stopCoundDown();
+                        if (result != "0") {
+                          _pointPlay[_levelPlay] = result;
+                        }
                       }
                     }),
                   ),
@@ -239,6 +312,10 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
               ),
               itemCount: crossAxisCount * mainAxisCount,
               itemBuilder: (context, index) {
+                if (_itemMatch.length == mainAxisCount) {
+                    index += mainAxisCount; 
+                }
+
                 int itemLeft = _itemsLeft[index];
 
                 return Draggable<int>(
@@ -249,22 +326,25 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
                   feedback: SizedBox(
                     width: sizeItem,
                     height: sizeItem,
-                    child: _itemAnimationWidget(itemLeft, itemWidth, itemHeight),
+                    child: _itemAnimationWidget(itemLeft),
                   ),
-                  childWhenDragging: _itemAnimationBoxWidget(itemWidth, itemHeight, _emptyBoxWidget()),
+                  childWhenDragging: _itemAnimationBoxWidget(itemWidth, itemHeight, _emptyBoxWidget(), white),
                   child: _itemMatch[itemLeft] == true
                       ? _emptyBoxWidget()
                       : _itemAnimationBoxWidget(
                           itemWidth, itemHeight,
-                          Stack(
-                            children: [
-                              _itemAnimationWidget(itemLeft, itemWidth, itemHeight),
-                              Text("$itemLeft")
-                            ],
-                          ),
-                          
+                         _itemAnimationWidget(itemLeft),
+                          white
                         ),
-                  onDragCompleted: () {},
+                  onDragCompleted: () {
+                    if (_itemNotMatch > 0) {
+                        Future.delayed(Duration(milliseconds: 500), (){
+                            setState(() {
+                                _itemNotMatch = 0;
+                            });
+                        });
+                    }
+                  },
                   onDraggableCanceled: (a, b) {},
                 );
               },
@@ -288,21 +368,31 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
                 }
                 return DragTarget<int>(
                   builder: (BuildContext context, List<dynamic> accepted, List<dynamic> rejected) {
-                    return Container(
-                      margin: const EdgeInsets.all(5.0),
-                      decoration: BoxDecoration(
-                        color: white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: _itemMatch[itemRight] == true
-                          ? _itemAnimationWidget(itemRight, itemWidth, itemHeight)
-                          : Stack(
-                            children: [
-                              _itemAnimationWidget(itemName, itemWidth, itemHeight),
-                              Text(itemName)
-                            ],
-                          ),
-                    );
+                    return _itemAnimationBoxWidget(itemWidth, itemHeight, 
+                           _itemMatch[itemRight] == true ? 
+                              _itemAnimationWidget(itemRight)
+                          : 
+                            // Column(
+                            //   mainAxisAlignment: MainAxisAlignment.center, // Center vertically
+                            //   crossAxisAlignment: CrossAxisAlignment.center, // Center horizontally
+                            //   children: [
+                            //     ,
+                            //       Text(itemName),
+                            //   ],
+                            // ), 
+                            Center(
+                              child: AnimatedBuilder(
+                                  animation: _animationGroupCharacter,
+                                  builder: (context, child) {
+                                    return Transform.scale(
+                                      scale: _animationGroupCharacter.value,
+                                      child: child,
+                                    );
+                                  },
+                                  child: _itemImageWidget(itemRight),
+                                ),
+                            ),
+                            _itemNotMatch == itemRight ? red : white);
                   },
                   onWillAcceptWithDetails: (details) {
                     if (_itemMatch[details.data] == true) {
@@ -320,28 +410,16 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
                       setState(() {
                         _itemMatch[details.data] = isMatch;
                       });
-                      
-                       if (_itemMatch.length == mainAxisCount) {
-                          _audioUtils.play('completed');
-                       }
                     } else {
                       _audioUtils.play('fail');
 
-                      showAlertDialog(
-                        context,
-                        "Upps Not Match, Try Again!",
-                        'continue',
-                        Center(
-                          child: SvgPicture.asset(
-                            _itemImageAssetName("no"),
-                            fit: BoxFit.cover,
-                          )
-                        ),
-                        () {
-                          _increaseLimitPlay();
-                          Navigator.pop(context);
-                        },
-                      );
+                      setState(() {
+                        _itemNotMatch = itemRight;
+                      });
+                      
+                      _increaseLimitPlay();
+
+                      _stopCoundDown();
                     }
                   },
                 );
@@ -353,55 +431,72 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _matchCompleted(int mainAxisCount, double screenWidth, screenHeight) {
+  Widget _matchCompleted(int mainAxisCount, double screenHeight) {
     const crossAxisCount = 1;
-    final itemWidth = screenWidth / crossAxisCount;
-    final itemHeight = screenHeight / mainAxisCount;
     const increaseScreenHeight = 200;
 
-    if (_itemMatch.length == mainAxisCount) {    
+    if (_itemMatch.length == mainAxisCount) {
       _controllerCountDown.pause();
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
-          
-          if (_levelPlay == 3) {
-              showAlertDialog(
-                  context,
-                  "Good Job!",
-                  'continue',
-                  Center(
-                      child: Text(_pointPlay.toString())
-                  ),
-                  () {
-                      Navigator.pushReplacementNamed(context, '/games');
-                  },
-              );
-              return;
+        if (_levelPlay == 3) {
+          int totalPoint = int.parse(_pointPlay[1]!) + int.parse(_pointPlay[2]!) + int.parse(_pointPlay[3]!);
+          double totalCalculate = totalPoint / 3;
+          double rating = (totalCalculate / 100) * 5;
+
+          if (rating.toInt() < 4) {
+            _audioUtils.play('completed');
+          } else {
+            _audioUtils.play('great');
           }
-          
+
           showAlertDialog(
-              context,
-              "Yeyyy, your Roarsome!",
-              'continue',
-              Center(
-                  child: SvgPicture.asset(
-                    _itemImageAssetName('ok'),
-                    fit: BoxFit.cover,
-                  )
+            context,
+            "Roarsome!",
+            'continue',
+            Center(
+              child: StarRating(
+                rating: rating.toInt(), // Nilai rating yang ingin ditampilkan
               ),
-              () {
-                  Navigator.pop(context); // Tutup dialog
-                  
-                  int level = _levelPlay;
-                  if (_levelPlay < 3) {
-                    level++;  
-                  }
-                  
-                  _controllerCountDown.restart();
-                  _setAttributePlay(level);
-              },
+            ),
+            () {
+              context.read<ActionProvider>().setExecAction('sound', false);
+              Navigator.pop(context); // Tutup halaman
+            },
+            "",
           );
-      });                
+          return;
+        }
+
+        _audioUtils.play('success');
+
+        showAlertDialog(
+          context,
+          "Yeyyy!",
+          'continue',
+          Center(
+            child: SvgPicture.asset(
+              _itemImageAssetName('complete'),
+              width: 100.0,
+              fit: BoxFit.cover,
+            ),
+          ),
+          () {
+            Navigator.pop(context); // Tutup dialog
+
+            int level = _levelPlay;
+            if (_levelPlay < 3) {
+              level++;
+            }
+
+            Future.delayed(Duration(milliseconds: 500), () {
+              _controllerCountDown.restart();
+              _setAttributePlay(level);
+            });
+          },
+          "Your Roarsome",
+        );
+      });
     }
 
     return Flexible(
@@ -416,7 +511,12 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
         itemBuilder: (BuildContext context, int index) {
           int item = _itemsLeft[index];
 
-          return _itemAnimationWidget(item, itemWidth, itemHeight);
+          return Card(
+            child: Padding( // Add padding to the card's content
+              padding: const EdgeInsets.all(16.0),
+              child: _itemAnimationWidget(item),
+            )
+          );
         },
       ),
     );
@@ -432,20 +532,25 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
 
   _stopCoundDown() {
     if (_limitPlay == 0) {
-      _audioUtils.play('timeup');
+      if (_levelPlay == 3) {
+        _audioUtils.play('lose');
+      } else {
+        _audioUtils.play('timeup');
+      }
 
       _controllerCountDown.pause();
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showAlertDialog(
           context,
-          "Uppps It's OK, Try Again!",
+          "Playtime is Over",
           'continue',
           Center(
-              child: SvgPicture.asset(
-                _itemImageAssetName('fail'),
-                fit: BoxFit.cover,
-              )
+            child: SvgPicture.asset(
+              _itemImageAssetName('fail'),
+              width: 100.0,
+              fit: BoxFit.cover,
+            ),
           ),
           () {
             if (_levelPlay == 3) {
@@ -455,12 +560,15 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
             _controllerCountDown.restart();
             Navigator.pop(context);
           },
+          "Try Again",
         );
       });
     }
   }
 
   _setAttributePlay(int levelPlay) {
+    _audioUtils.play('start');
+
     setState(() {
       _itemMatch = {};
       _levelPlay = levelPlay;
@@ -480,7 +588,6 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     const mainAxisCount = 4;
@@ -493,13 +600,29 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
         body: SafeArea(
           child: Stack(
             children: [
+              Center(
+                child: AnimatedBuilder(
+                  animation: _animationGroupCharacter,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _animationGroupCharacter.value,
+                      child: child,
+                    );
+                  },
+                  child: SvgPicture.asset(
+                    _itemImageAssetName('bg$_levelPlay'),
+                    width: screenWidth,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+              ),
               SizedBox(
                 height: double.infinity,
                 width: double.infinity,
                 child: FittedBox(
                   fit: BoxFit.cover,
                   child: SvgPicture.asset(
-                    _itemImageAssetName('bg$_levelPlay'),
+                    _itemImageAssetName('bgoverlay'),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -507,10 +630,22 @@ class _MatchingState extends State<Matching> with SingleTickerProviderStateMixin
               Column(
                 children: [
                   _sectionTop(screenWidth, _itemMatch.length == mainAxisCount),
-                  _itemMatch.length == mainAxisCount
-                      ? _matchCompleted(mainAxisCount, screenWidth, screenHeight)
+                  SizedBox(height: 50.0),
+                  _itemMatch.length == mainAxisCount? 
+                        _matchCompleted(mainAxisCount, screenHeight)
                       : _matchPlay(mainAxisCount, screenWidth, screenHeight),
                 ],
+              ),
+              Consumer<ActionProvider>(
+                builder: (context, model, child) {
+                  if (model.execAction["close-matching"] != null) {
+                    if (model.execAction["close-matching"] == true) {
+                      Navigator.pop(context); // Tutup halaman
+                    }
+                  }
+
+                  return SizedBox.shrink();
+                },
               ),
             ],
           ),

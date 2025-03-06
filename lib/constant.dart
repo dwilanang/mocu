@@ -6,6 +6,7 @@ String fontFamilyDinoRegular = "Dino";
 
 Color white = Colors.white70;
 Color black = Colors.black87;
+Color red = Colors.red.shade200;
 Color skyBlue = HexColor.fromHex('#38b6ff');
 Color darkYellow = HexColor.fromHex('#ffbd59');
 Color darkBrown = HexColor.fromHex('#5f3030');

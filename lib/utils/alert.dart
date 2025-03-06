@@ -1,57 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mocu/widget/alert.dart';
 
-void showAlertDialog(BuildContext context, String title, String buttonName, Widget content, ActionCallback callback) {
-  // set up the AlertDialog
-  AlertDialog alert = AlertDialog(
-    content: Stack(
-      children: [
-          SvgPicture.asset(
-            "assets/images/bgitem.svg",
-            fit: BoxFit.cover,
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 25.0,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              content,
-            ],
-        )
-      ],
-    ),
-    actions: [
-      
-      GestureDetector(
-        onTapDown: (_) {
-            callback();
-        },
-        child: SvgPicture.asset(
-          "assets/images/$buttonName.svg",
-          width: 100,
-          fit: BoxFit.contain,
-        ),
-      ),
-    ],
-    actionsAlignment:MainAxisAlignment.center,
-    backgroundColor: Colors.white,
-  );
-
-  // show the dialog
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return alert;
+void showAlertDialog(BuildContext context, String title, String buttonName, Widget content, ActionCallback callback, String subTitle) {
+  Navigator.of(context).push(PageRouteBuilder(
+    opaque: false,
+    barrierColor: Colors.black.withOpacity(0.7), // Set the barrier color to a semi-transparent black
+    pageBuilder: (BuildContext context, _, __) {
+      return CustomAlertDialog(
+        title: title,
+        buttonName: buttonName,
+        content: content,
+        callback: callback,
+        subTitle: subTitle,
+      );
     },
-    barrierDismissible: false,
-  );
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(0.0, 0.1);
+      const end = Offset.zero;
+      const curve = Curves.easeInBack;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+      return SlideTransition(
+        position: animation.drive(tween),
+        child: child,
+      );
+    },
+  ));
 }
 
 typedef ActionCallback = void Function();
