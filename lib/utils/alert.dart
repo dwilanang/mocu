@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:mocu/widget/alert.dart';
+import 'package:mocu/constant.dart';
 
-void showAlertDialog(BuildContext context, String title, String buttonName, Widget content, ActionCallback callback, String subTitle) {
+void showAlertDialog(BuildContext context, {String? title, String? subTitle, String? bgitem, Widget? content, String? buttonName, String? buttonTitle, Function? callback}) {
   Navigator.of(context).push(PageRouteBuilder(
     opaque: false,
-    barrierColor: Colors.black.withOpacity(0.7), // Set the barrier color to a semi-transparent black
+    barrierColor: blackOpacity, // Set the barrier color to a semi-transparent black
     pageBuilder: (BuildContext context, _, __) {
+      if (callback != null) {
+        callback('open');
+      }
+      
       return CustomAlertDialog(
         title: title,
-        buttonName: buttonName,
-        content: content,
-        callback: callback,
         subTitle: subTitle,
+        bgItem: bgitem,
+        content: content,
+        buttonName: buttonName,
+        buttonTitle: buttonTitle,
+        callback: callback,
       );
     },
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -29,4 +36,4 @@ void showAlertDialog(BuildContext context, String title, String buttonName, Widg
   ));
 }
 
-typedef ActionCallback = void Function();
+// typedef ActionCallback = void Function();

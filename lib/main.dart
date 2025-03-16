@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:mocu/pages/welcome.dart';
 import 'package:mocu/routes.dart';
@@ -6,6 +7,8 @@ import 'package:mocu/constant.dart';
 import 'package:mocu/provider/action.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized(); // Pastikan binding diinisialisasi
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   runApp(
     MultiProvider(
       providers: [

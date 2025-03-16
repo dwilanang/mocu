@@ -10,7 +10,7 @@ class StarRating extends StatelessWidget {
     super.key,
     required this.rating,
     this.maxRating = 5,
-    this.size = 25.0,
+    this.size = 20.0,
     this.color = Colors.amber,
   });
 

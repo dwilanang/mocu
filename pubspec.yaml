@@ -40,6 +40,7 @@ dependencies:
   rive: ^0.13.20
   circular_countdown_timer: ^0.2.4
   provider: ^6.0.0
+  dotted_border: ^2.1.0
   
 dev_dependencies:
   flutter_test:

@@ -33,12 +33,32 @@ class AnimationUtils {
     required TickerProvider vsync,
     required Duration duration,
     required double begin,
+    required double end,
+    bool? reverse
+  }) {
+    AnimationController controller = AnimationController(
+      vsync: vsync,
+      duration: duration,
+    )..repeat(reverse: reverse ?? true);
+
+    Animation<double> animation = Tween<double>(begin: begin, end: end).animate(controller);
+
+    return {
+      'controller': controller,
+      'animation': animation,
+    };
+  }
+
+  static Map<String, dynamic> createAnimationRepeatNoReverse({
+    required TickerProvider vsync,
+    required Duration duration,
+    required double begin,
     required double end
   }) {
     AnimationController controller = AnimationController(
       vsync: vsync,
       duration: duration,
-    )..repeat(reverse: true);
+    )..repeat();
 
     Animation<double> animation = Tween<double>(begin: begin, end: end).animate(controller);
 
