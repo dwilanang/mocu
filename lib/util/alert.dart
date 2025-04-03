@@ -11,14 +11,20 @@ void showAlertDialog(BuildContext context, {String? title, String? subTitle, Str
         callback('open');
       }
       
-      return CustomAlertDialog(
-        title: title,
-        subTitle: subTitle,
-        bgItem: bgitem,
-        content: content,
-        buttonName: buttonName,
-        buttonTitle: buttonTitle,
-        callback: callback,
+      return WillPopScope(
+        onWillPop: () async {
+          // Return false to prevent the dialog from closing
+          return false;
+        },
+        child: CustomAlertDialog(
+          title: title,
+          subTitle: subTitle,
+          bgItem: bgitem,
+          content: content,
+          buttonName: buttonName,
+          buttonTitle: buttonTitle,
+          callback: callback,
+        )
       );
     },
     transitionsBuilder: (context, animation, secondaryAnimation, child) {

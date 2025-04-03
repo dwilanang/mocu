@@ -41,6 +41,7 @@ dependencies:
   circular_countdown_timer: ^0.2.4
   provider: ^6.0.0
   dotted_border: ^2.1.0
+  flip_card: ^0.7.0
   
 dev_dependencies:
   flutter_test:
@@ -69,6 +70,8 @@ flutter:
     - assets/animation/
     - assets/images/
     - assets/images/items/
+    - assets/images/yummy/
+    - assets/images/memory/
     - assets/audios/
 
   # An image asset can refer to one or more resolution-specific "variants", see

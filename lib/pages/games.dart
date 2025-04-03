@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mocu/constant.dart';
-import 'package:mocu/utils/audio.dart';
-import 'package:mocu/utils/animation.dart';
+import 'package:mocu/util/audio.dart';
+import 'package:mocu/util/animation.dart';
 import 'package:mocu/provider/action.dart';
+import 'package:mocu/widget/sectionbottom.dart';
 
 class Games extends StatefulWidget {
   const Games({super.key});
@@ -31,8 +32,8 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
 
   final List<Map<String, dynamic>> _listGame = [
       {'title': "Matching", 'page':'/matching'}, 
-      {'title': "Yummy or Yucky", 'page':'/yummy-yucky'}, 
-      {'title': "Memory", 'page':'/matching'}, 
+      {'title': "Yummy", 'page':'/yummy-yucky'}, 
+      {'title': "Memory", 'page':'/memory'}, 
       {'title': "Grouping", 'page':'/matching'}
   ];
 
@@ -155,6 +156,31 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
     );
   }
 
+  Widget _sectionBottom(){
+    return SectionBottom(
+          animationController: _animationController,
+          animation: _animation,
+          isSoundMode: _soundMode,
+          onSoundTapDown: (){
+            _audioUtils.play("click");
+            _animationController['sound']!.forward();
+            setState(() {
+              _soundMode = !_soundMode;
+
+              if (_soundMode) {
+                  _audioUtils.play("backsound", loop: true);
+              } else {
+                  _audioUtils.stop("backsound");
+              }
+            });
+          },
+          onSoundTapCancel: (){
+            _animationController['sound']!.reverse();
+          },
+         
+        );
+  }
+  
   Widget _itemGame(int i, Map<String, dynamic> item){
     return GestureDetector(
         onTapDown: (_) {
@@ -287,8 +313,6 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
                   mainAxisAlignment: MainAxisAlignment.center, // Tengah vertikal
                   crossAxisAlignment: CrossAxisAlignment.center, // Tengah horizontal
                   children: [
-                    _sectionTop(),
-
                     Flexible(
                         child: SizedBox(
                           width: screenWidth,
@@ -346,6 +370,7 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
             ],
           ),
         ),
+        bottomSheet: _sectionBottom(),
       )
     );
   }

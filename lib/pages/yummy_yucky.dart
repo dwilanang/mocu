@@ -1,8 +1,19 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:circular_countdown_timer/circular_countdown_timer.dart';
+import 'package:rive/rive.dart';
+import 'package:dotted_border/dotted_border.dart';
 
 import 'package:mocu/constant.dart';
+import 'package:mocu/util/animation.dart';
+import 'package:mocu/util/audio.dart';
+import 'package:mocu/util/alert.dart';
+import 'package:mocu/util/utils.dart';
+import 'package:mocu/widget/rating.dart';
+import 'package:mocu/widget/sectionbottom.dart';
+import 'package:mocu/widget/sectiontop.dart';
+import 'package:mocu/widget/countdowncompleted.dart';
 
 class YummyYucky extends StatefulWidget {
   const YummyYucky({super.key});
@@ -12,28 +23,489 @@ class YummyYucky extends StatefulWidget {
   _YummyYuckyState createState() => _YummyYuckyState();
 }
 
-class _YummyYuckyState extends State<YummyYucky> {
+class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
+
+  final AudioUtils _audioUtils = AudioUtils();
+
   late final Map<dynamic, AnimationController> _animationController = {};
   late final Map<dynamic, Animation<double>> _animation = {};
 
-  String _itemImageAssetName(dynamic name) {
-    return "assets/images/$name.svg";
+  final Map<dynamic, dynamic> animation = {};
+
+  final Map<int, int> _limitPlayLevel = {1: 3, 2: 2};
+  final Map<int, int> _limitPlay = {};
+  final Map<int, String> _pointPlay = {};
+  
+  Map<int, bool> _itemMatch = {};
+  Map<int, bool> _itemDropToTarget = {};
+  
+  final int _mainAxisCount = 6;
+  int _levelPlay = 1;
+  int _limitRePlay = 3;
+  int _indexShowFood = 0;
+  int _itemNotMatch = 0;
+
+  bool _soundMode = true;
+  bool _isComplete = false;
+  bool _loadingStartLevel = false;
+
+  final CountDownController _controllerCountDown = CountDownController();
+  final CountDownController _controllerCountDownComplete = CountDownController();
+
+  final Map<int, List<Map<String, dynamic>>> _itemsTarget = {
+    1: [ {'character':7, 'eat':'3'}, {'character':11, 'eat':'1,3'}, {'character':6, 'eat':'2'}, {'character':3, 'eat':'5'}, {'character':10, 'eat':'1,3,4,6'}, {'character':8, 'eat':'4,6'}],
+    2: [ {'character':5, 'eat':'1,3'}, {'character':1, 'eat':'5,2'}, {'character':9, 'eat':'1,3,4,6'}, {'character':2, 'eat':'5,2'}, {'character':4, 'eat':'2'}, {'character':12, 'eat':'7,8'}],
+  };
+
+  final Map<int, List<int>> _itemsFood = {
+    1: [6, 4, 1, 3, 5, 2, 7],
+    2: [3, 2, 5, 1, 6, 3, 8],
+  };
+
+  @override
+  void initState() {
+    super.initState();
+
+    _limitPlay[_levelPlay] = _limitPlayLevel[_levelPlay]!;
+
+    _itemsTarget[_levelPlay]!.shuffle(Random());
+    _itemsFood[_levelPlay]!.shuffle(Random());
+
+    _audioUtils.play('start');
+
+    animation['character'] = AnimationUtils.createAnimationRepeat(
+        vsync: this,
+        duration: const Duration(seconds: 1),
+        begin: 0.9, end: 1.0
+    );
+   
+    _animationController['character'] = animation['character']['controller'];
+    _animation['character'] = animation['character']['animation'];
+
+    animation['replay'] = AnimationUtils.createAnimation(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      begin: 1.0,
+      end: 1.2,
+    );
+
+    _animationController['replay'] = animation['replay']['controller'];
+    _animation['replay'] = animation['replay']['animation'];
+
+    animation['sound'] = AnimationUtils.createAnimation(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      begin: 1.0,
+      end: 1.2,
+    );
+
+    _animationController['sound'] = animation['sound']['controller'];
+    _animation['sound'] = animation['sound']['animation'];
+  }
+
+  @override
+  void dispose() {
+    _animationController['character']!.dispose();
+    super.dispose();
+  }
+
+  Widget _itemAnimationWidget(dynamic name) {
+    return RiveAnimation.asset(
+      utilItemAnimationAssetName(name),
+      fit: BoxFit.fitHeight,
+    );
+  }
+
+  Widget _itemFood(int itemFood){
+    return Center(
+      child: AnimatedBuilder(
+        animation:  _animation['character']!,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _animation['character']!.value,
+            child: child,
+          );
+        },
+        child: SvgPicture.asset(
+          utilItemImageAssetName('yummy/$itemFood'),
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+
+  Widget _itemDrag(double screenWidth){
+    var itemFood = _itemsFood[_levelPlay]![_indexShowFood];
+
+    return Draggable<int>(
+        data: itemFood,
+        onDragStarted: () {
+          _audioUtils.play("click");
+        },
+        feedback: SizedBox(
+          width: 100.0,
+          height: 100.0,
+          child: _itemFood(itemFood),
+        ),
+        childWhenDragging: _emptyBoxWidget(),
+        child: _itemFood(itemFood),
+        onDragCompleted: () {
+          setState((){
+            if (_itemNotMatch > 0) {
+              Future.delayed(Duration(milliseconds: 500), (){
+                  _itemNotMatch = 0;
+              });
+            }
+
+            _itemDropToTarget = {};
+          });
+        },
+        onDraggableCanceled: (a, b) {
+          setState(()=>_itemDropToTarget = {});
+        },
+      );
+  }
+
+  Widget _sectionTop() {
+
+      return SectionTop(limitPlay: _limitPlay[_levelPlay]!, levelPlay: _levelPlay, limitRePlay: _limitRePlay);
+  }
+
+  Widget _sectionBottom(){
+    return SectionBottom(
+          mainAxisCount: _mainAxisCount,
+          animationController: _animationController,
+          animation: _animation,
+          controllerCountDown: _controllerCountDown,
+          autoStartCountDown: true,
+          durationCountDown: 40,
+          isMatchComplete: _itemMatch.length == _mainAxisCount,
+          isTimeUp: _limitPlay[_levelPlay]! > 0,
+          isSoundMode: _soundMode,
+          onResetTapDown: (){
+            _audioUtils.play("click");
+            _animationController['replay']!.forward();
+
+            _restartPlay();
+          },
+          onResetTapCancel: (){
+            _animationController['replay']!.reverse();
+          },
+          onSoundTapDown: (){
+            _audioUtils.play("click");
+            _animationController['sound']!.forward();
+            setState(() {
+              _soundMode = !_soundMode;
+
+              if (_soundMode) {
+                  _audioUtils.play("backsound", loop: true);
+              } else {
+                  _audioUtils.stop("backsound");
+              }
+            });
+          },
+          onSoundTapCancel: (){
+            _animationController['sound']!.reverse();
+          },
+          onTimeUp: (){
+              _audioUtils.play('timeup');
+
+              showAlertDialog(
+                context,
+                title: "Time UP!",
+                subTitle: "Try Again",
+                buttonTitle: "Continue",
+                content: SvgPicture.asset(
+                  utilItemImageAssetName('fail'),
+                    width: 100.0,
+                    fit: BoxFit.cover,
+                  ),
+                  callback: (v){
+                    if (v == 'click') {
+                      Navigator.pop(context);
+
+                      if (_limitRePlay == 1){
+                        _gameOver(_levelPlay);
+                        return;
+                      }
+
+                      if (_limitPlay[_levelPlay] == 1){
+                        setState(() {
+                          _limitRePlay--;
+                          _limitPlay[_levelPlay] = _limitPlayLevel[_levelPlay]!;
+                        });
+                        _controllerCountDown.restart();
+                        return;
+                      }
+                        
+                      _increaseLimitPlay();
+                      _restartPlay();
+                    }
+                  }
+                );
+              
+          },
+          onTimeRun: (v){
+            _setPointPlay(v);
+              int limitPlay = _limitPlay[_levelPlay] ?? 0;
+              if (limitPlay == 0) {
+                _limitRePlay--;
+                return;
+              }
+          },
+        );
+  }
+
+  void _stopCoundDown() {
+    if (_limitPlay[_levelPlay] == 0) {
+      _controllerCountDown.pause();
+
+      if (_limitRePlay == 1){
+        _gameOver(_levelPlay);
+        return;
+      }
+
+     if (_levelPlay == 3) {
+        _audioUtils.play('lose');
+      } else {
+        _audioUtils.play('timeup');
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showAlertDialog(
+          context,
+          title: "Playtime is Over",
+          subTitle: "Try Again",
+          buttonTitle:  "Continue",
+          content: SvgPicture.asset(
+              utilItemImageAssetName('fail'),
+            width: 100.0,
+            fit: BoxFit.cover,
+          ),
+          callback: (v) {
+            if (v == 'click') {
+                if (_levelPlay == 3) {
+                  _levelPlay = 1;
+                }
+                _setAttributePlay(_levelPlay);
+                _controllerCountDown.restart();
+                Navigator.pop(context);
+            }
+          },
+        );
+      });
+    }
+  }
+
+  void _gameOver(int levelPlay) {
+    _audioUtils.play('lose');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+        showAlertDialog(
+          context,
+          title:  "Game Overr",
+          buttonTitle: "Exit",
+          content: SvgPicture.asset(
+            utilItemImageAssetName('fail'),
+            width: 100.0,
+            fit: BoxFit.cover,
+          ),
+          callback: (v) {
+            if (v == 'click') {
+                Navigator.pop(context); // Tutup alert
+                Navigator.pop(context); // Kembali ke halaman sebelumnya
+            }
+          },
+        );
+      });
+  }
+
+  Widget _emptyBoxWidget() {
+    return const SizedBox(width: 0, height: 0);
+  }
+
+  Widget _matchCompleted() {
+
+    if (!_loadingStartLevel && _itemMatch.length == _mainAxisCount) {
+      _controllerCountDown.pause();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_levelPlay == 2) {
+          //Nilai Akhir = ( (K1 + K2) / 2 * 0.6 ) + ( (T1 + T2) / 2 * 0.4 )
+
+          int totalPointSpeed = (int.parse(_pointPlay[1]!) + int.parse(_pointPlay[2]!));
+          
+          double totalCalculateSpeed = (totalPointSpeed / 2) * 0.6;
+
+          int totalCalculateSpeedRound = totalCalculateSpeed.round();
+
+          int totalPointAccuracy = (_limitPlay[1]! + _limitPlay[2]!);
+
+          double totalCalculateAccuracy = (totalPointAccuracy / 2) * 0.4;
+
+          int totalCalculateAccuracyRound = totalCalculateAccuracy.round();
+
+          double rating = (totalCalculateSpeedRound + totalCalculateAccuracyRound)/2;
+
+          int finalRating = utilPointStar(rating);
+
+          if (finalRating >= 4){
+            _audioUtils.play('great');
+          } else {
+            _audioUtils.play('completed');
+          }
+
+          showAlertDialog(
+            context,
+            bgitem: 'bgboard',
+            title: "Roarsome!",
+            buttonTitle: "Continue",
+            content: StarRating(
+                rating: finalRating, // Nilai rating yang ingin ditampilkan
+                color: brown,
+            ),
+            callback: (v) {
+               if (v == 'click') {
+                Navigator.pop(context); // Tutup dialog
+                Navigator.pop(context); // Kembali ke halaman sebelumnya
+
+                _resetPlay();
+                _controllerCountDown.pause();
+              }
+            },
+          );
+          
+          return;
+        }
+
+        _audioUtils.play('success');
+
+        showAlertDialog(
+          context,
+          title: "Yeyyy!",
+          subTitle: "Your Roarsome",
+          buttonTitle: "Continue",
+          content:  SvgPicture.asset(
+              utilItemImageAssetName('complete'),
+              width: 100.0,
+              fit: BoxFit.cover,
+            ),
+          callback: (v) {
+            if (v == 'click') {
+                Navigator.pop(context); // Tutup dialog
+
+                setState(() {
+                  _loadingStartLevel = true;
+                });
+            }
+          },
+        );
+      });
+    }
+
+    if (_loadingStartLevel) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+            showAlertDialog(
+              context,
+              content: CountDownCompleted(
+                countDownAutoStart: true, 
+                durationCountDown: 4, 
+                controllerCountDown: _controllerCountDownComplete, 
+                onChange: (v){
+                    if (v == '1'){
+                        Navigator.pop(context); // Tutup dialog
+
+                        _controllerCountDownComplete.reset();
+
+                        Future.delayed(Duration(seconds: 1), (){
+                          int level = _levelPlay;
+                          if (_levelPlay < 3) {
+                            level++;
+                          }
+                          
+                          _setAttributePlay(level);
+
+                          _controllerCountDown.restart();
+                          
+                          setState(() {
+                            _isComplete = false;
+                          });
+                        });
+                    }
+                }
+              )
+            );
+        });
+    }
+
+    return _emptyBoxWidget();
+  }
+
+  void _increaseLimitPlay() {
+    if (_limitPlay[_levelPlay]! > 0) {
+      setState(() {
+        _limitPlay[_levelPlay] = _limitPlay[_levelPlay]! - 1;
+      });
+    }
+  }
+
+  void _increaseLimitRePlay() {
+      setState(() {
+        _limitRePlay--;
+      });
+  }
+
+  void _setPointPlay(String result) {
+    if (result != "0") {
+      _pointPlay[_levelPlay] = result;
+    }
+  }
+
+  void _restartPlay() {
+    setState(() {
+      _itemMatch = {};
+    });
+
+    _controllerCountDown.restart();
+  }
+
+  void _setAttributePlay(int levelPlay) {
+    _audioUtils.play('start');
+
+    setState(() {
+      _loadingStartLevel = false;
+      _itemMatch = {};
+      _levelPlay = levelPlay;
+      _limitPlay[levelPlay] = _limitPlayLevel[levelPlay]!;
+
+      _itemsTarget[_levelPlay]!.shuffle(Random());
+    });
+  }
+
+  void _resetPlay() {
+    setState(() {
+      _itemMatch = {};
+      _levelPlay = 1;
+      _limitRePlay = 3;
+      _limitPlay[_levelPlay] = 3;
+    });
+
+    _controllerCountDown.restart();
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-    const mainAxisCount = 4;
 
     const crossAxisCount = 2; // 1 kolom
     final itemWidth = screenWidth / crossAxisCount;
-    final itemHeight = screenHeight / mainAxisCount;
-    const increaseScreenHeight = 200;
-    double sizeItem = (screenHeight - increaseScreenHeight) / mainAxisCount;
+    final itemHeight = screenHeight / _mainAxisCount;
 
     return WillPopScope(
       onWillPop: () async {
+        Navigator.pop(context); // Kembali ke halaman sebelumnya
+        
         return false;
       },
       child: Scaffold(
@@ -41,43 +513,182 @@ class _YummyYuckyState extends State<YummyYucky> {
         backgroundColor: softBrown,
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title:Text("testing"),
+          title: _sectionTop(),
           backgroundColor: Colors.transparent, // Latar belakang transparan
           elevation: 0, // Menghilangkan bayangan
         ),
         body: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              Expanded(
-                flex: 2,
-                child: GridView.builder(
-                  shrinkWrap: true, 
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    mainAxisExtent: (screenHeight - 200) / mainAxisCount,
-                  ),
-                  itemCount: crossAxisCount * mainAxisCount,
-                  itemBuilder: (context, index) {
-
-                      return DragTarget<int>(
-                        builder: (BuildContext context, List<dynamic> accepted, List<dynamic> rejected) {
-                          return Text("test");
-                        },
-                        onWillAcceptWithDetails: (details) {
-                          
-                          return true;
-                        },
-                        onAcceptWithDetails: (details) {
-                          
-                        },
-                      );
-                    },
+              Center(
+                child: AnimatedBuilder(
+                  animation:  _animation['character']!,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _animation['character']!.value,
+                      child: child,
+                    );
+                  },
+                  child: SvgPicture.asset(
+                    utilItemImageAssetName('bg$_levelPlay'),
+                    width: screenWidth,
+                    fit: BoxFit.fill,
                   ),
                 ),
+              ),
+              SizedBox(
+                height: double.infinity,
+                width: double.infinity,
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SvgPicture.asset(
+                    utilItemImageAssetName('bgoverlay'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              Column(
+                children: <Widget>[
+                  Expanded(
+                    flex: 4,
+                    child: GridView.builder(
+                      shrinkWrap: true, 
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount, // Sesuaikan jumlah kolom
+                        mainAxisExtent: (screenHeight / _mainAxisCount)+25,
+                      ),
+                      itemCount: _mainAxisCount, // Sesuaikan jumlah item
+                      itemBuilder: (BuildContext context, int index) {
+                        var targetItem = _itemsTarget[_levelPlay]![index];
+
+                        return DragTarget<int>(
+                            builder: (BuildContext context, List<dynamic> accepted, List<dynamic> rejected) {
+                              return _itemDropToTarget[targetItem['character']] ?? false ?
+                                DottedBorder(
+                                  color: brown,
+                                  strokeWidth: 2.0,
+                                  borderType: BorderType.Circle,
+                                  child: Center(
+                                    child: Container(
+                                      width: itemWidth,
+                                      height: itemHeight,
+                                      decoration: BoxDecoration(
+                                        color: whiteOpacity,
+                                        shape: BoxShape.circle, // Bentuk bulat
+                                      ),
+                                      child: _itemAnimationWidget(targetItem['character']),
+                                    ),
+                                  ),
+                                )
+                                :
+                                Center(
+                                  child: Container(
+                                    width: itemWidth,
+                                    height: itemHeight,
+                                    decoration: BoxDecoration(
+                                      color: _itemNotMatch == targetItem['character'] ? red : _itemMatch[targetItem['character']] ?? false ? green : whiteOpacity,
+                                      shape: BoxShape.circle, // Bentuk bulat
+                                    ),
+                                    child: _itemAnimationWidget(targetItem['character']),
+                                  ),
+                                );
+                            },
+                            onWillAcceptWithDetails: (details) {
+
+                              if (_itemMatch[targetItem['character']] == true) {
+                                return false;
+                              }
+
+                              setState((){
+                                _itemDropToTarget = {};
+                                _itemDropToTarget[targetItem['character']] = true;
+                              });
+
+                              return true;
+                            },
+                            onAcceptWithDetails: (details) {
+                              var isMatch = targetItem['eat'].toString().contains(details.data.toString());
+
+                              final random = Random();
+
+                              if (isMatch) {
+                                _audioUtils.play('yummy');
+
+                                setState(() {
+                                  _itemDropToTarget = {};
+                                  _itemMatch[targetItem['character']] = isMatch;
+                                  _indexShowFood = random.nextInt(6);
+                                });
+
+                                if (_itemMatch.length == _mainAxisCount) {
+                                  setState(() {
+                                    _isComplete = true;
+                                  });
+
+                                  _controllerCountDown.pause();
+                                }
+                              } else {
+                                _audioUtils.play('yucky');
+                                
+                                setState(() {
+                                  _itemNotMatch = targetItem['character'];
+                                  _indexShowFood = random.nextInt(6);
+                                });
+
+                                Future.delayed(Duration(seconds: 2), (){
+                                    setState(() {
+                                      _itemNotMatch = 0;
+                                    });
+                                });
+
+                                _increaseLimitPlay();
+
+                                _stopCoundDown();
+                              }
+                            },
+                        );
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: _isComplete ? 
+                    _matchCompleted() 
+                    :
+                    GestureDetector(
+                        onTapUp: (_) {
+                          final random = Random();
+
+                          setState(() {
+                            _indexShowFood = random.nextInt(7);
+                          });
+                        },
+                        child: SizedBox(
+                          width: screenWidth/3,
+                          child:  Card(
+                            color: white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(100), // Oval
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.all(10.0),
+                              child: _itemDrag(screenWidth),
+                            )
+                          )
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: SizedBox(
+                        height: 100.0
+                    ),
+                  ),
+                ],
+              ),
             ],
           )
         ),
+        bottomSheet: _sectionBottom(),
       ),
     );
   }
