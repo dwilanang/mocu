@@ -8,6 +8,10 @@ import 'package:mocu/util/audio.dart';
 import 'package:mocu/util/animation.dart';
 import 'package:mocu/provider/action.dart';
 import 'package:mocu/widget/sectionbottom.dart';
+import 'package:mocu/util/utils.dart';
+
+import 'package:rive/rive.dart';
+import 'package:mocu/util/utils.dart';
 
 class Games extends StatefulWidget {
   const Games({super.key});
@@ -34,7 +38,7 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
       {'title': "Matching", 'page':'/matching'}, 
       {'title': "Yummy", 'page':'/yummy-yucky'}, 
       {'title': "Memory", 'page':'/memory'}, 
-      {'title': "Grouping", 'page':'/matching'}
+      {'title': "About Dino", 'page':'/aboutdino'}
   ];
 
   bool _soundMode = true;
@@ -42,15 +46,6 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-
-    animation['character'] = AnimationUtils.createAnimationRepeat(
-        vsync: this,
-        duration: const Duration(seconds: 1),
-        begin: 0.9, end: 1.0
-    );
-   
-    _animationController['character'] = animation['character']['controller'];
-    _animation['character'] = animation['character']['animation'];
 
     // _audioUtils.play("backsound", loop: true);
 
@@ -92,7 +87,7 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
   void dispose() {
     _audioUtils.stopAll();
 
-    List<String> animations = ['character', 'sound'];
+    List<String> animations = ['sound'];
     for (String v in animations) {
       _animationController[v]!.dispose();
     }
@@ -181,103 +176,52 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
         );
   }
   
-  Widget _itemGame(int i, Map<String, dynamic> item){
-    return GestureDetector(
-        onTapDown: (_) {
-            _animationControllerPlay[i]!.forward();
+  Widget _itemGame(int i, Map<String, dynamic> item) {
+  return GestureDetector(
+    onTapDown: (_) {
+      _animationControllerPlay[i]!.forward();
 
-            Future.delayed(Duration(milliseconds: 250), (){
-              if (mounted){
-                Navigator.pushNamed(context, item['page']);
-              }
-            });
-        },
-        onTapUp: (_){
-            _audioUtils.play("click");
-        },
-        onTapCancel: () {
-          _animationControllerPlay[i]!.reverse();
-        },
-        child: AnimatedBuilder(
-          animation:  _animationPlay[i]!,
-          builder: (context, child) {
-            return Transform.scale(
-              scale:  _animationPlay[i]!.value,
-              child: child,
-            );
-          },
-          child:  Card(
-            color: softBrownOpacity, // transparan
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.0), // Oval
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center, // Center vertically
-                crossAxisAlignment: CrossAxisAlignment.center, // Center horizontally
-                children: [
-                  Text(
-                    item['title'],
-                    style: TextStyle(
-                      color: white,
-                      fontSize: 20.0,
-                      fontFamily: fontFamilyDynaPuff,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  AnimatedBuilder(
-                    animation: _animation[i]!,
-                    builder: (context, child) {
-                    
-                      return ShaderMask(
-                        shaderCallback: (bounds) {
-                          return LinearGradient(
-                            colors: [
-                              Colors.brown.shade500.withOpacity(0.5),
-                              Colors.brown.shade100.withOpacity(0.5),
-                              Colors.brown.shade500.withOpacity(0.5),
-                            ],
-                            stops: [
-                              0.0,
-                              0.5 + 0.5 * math.sin(_animation[i]!.value),
-                              1.0,
-                            ],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ).createShader(bounds);
-                        },
-                        blendMode: BlendMode.srcATop,
-                        child: Card(
-                          color: brown,
-                          margin: EdgeInsets.all(10.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(100), // Oval
-                          ),
-                          child: SizedBox(
-                              height: 50.0,
-                              child: Center(
-                                child: Text(
-                                    "Play",
-                                    style: TextStyle(
-                                      color: white,
-                                      fontSize: 20.0,
-                                      fontFamily: fontFamilyDynaPuff,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+      Future.delayed(const Duration(milliseconds: 250), () {
+        if (mounted) {
+          Navigator.pushNamed(context, item['page']);
+        }
+      });
+    },
+    onTapUp: (_) {
+      _audioUtils.play("click");
+    },
+    onTapCancel: () {
+      _animationControllerPlay[i]!.reverse();
+    },
+    child: AnimatedBuilder(
+      animation: _animationPlay[i]!,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _animationPlay[i]!.value,
+          child: child,
+        );
+      },
+      child: Card(
+        color: softBrownOpacity, // Transparan
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.0), // Oval
+        ),
+        margin: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0), // Jarak antar item
+        child: Center(
+          child: Text(
+            item['title'],
+            style: TextStyle(
+              color: white,
+              fontSize: 20.0,
+              fontFamily: fontFamilyDynaPuff,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
-    );
-  }
+      ),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -302,50 +246,41 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
                 child: FittedBox(
                   fit: BoxFit.cover,
                   child: SvgPicture.asset(
-                    "assets/images/background.svg",
+                    utilItemImageAssetName('background'),
+                    fit: BoxFit.fitWidth,
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: double.infinity,
+                width: double.infinity,
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SvgPicture.asset(
+                    utilItemImageAssetName('bgoverlay'),
                     fit: BoxFit.cover,
                   ),
                 ),
               ),
-              Padding(
-                padding: EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center, // Tengah vertikal
-                  crossAxisAlignment: CrossAxisAlignment.center, // Tengah horizontal
-                  children: [
-                    Flexible(
-                        child: SizedBox(
-                          width: screenWidth,
-                          height: 200.0,
-                          child: AnimatedBuilder(
-                            animation: _animation['character']!,
-                            builder: (context, child) {
-                              return Transform.scale(
-                                scale: _animation['character']!.value,
-                                child: child,
-                              );
-                            },
-                            child: SvgPicture.asset(
-                              "assets/images/group-character.svg",
-                              width: screenWidth,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
+              Column(
+                children: [
+                  SvgPicture.asset(
+                      utilItemImageAssetName('dinosaurbymocu'),
+                      height: 100.0,
+                  ),
+                  Expanded(
+                    // padding: EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
+                    child: GridView.count(
+                      crossAxisCount: 1, // Jumlah kolom
+                      childAspectRatio: 2.5, // Sesuaikan rasio tinggi
+                      children: _listGame.asMap().entries.map((entry) {
+                        int index = entry.key;
+                        Map<String, dynamic> item = entry.value;
+                        return _itemGame(index+1, item);
+                      }).toList()
                     ),
-                    Expanded(
-                      child: GridView.count(
-                          crossAxisCount: 2, // Jumlah kolom
-                          childAspectRatio: 1.3, // Sesuaikan rasio tinggi
-                          children: _listGame.asMap().entries.map((entry) {
-                            int index = entry.key;
-                            Map<String, dynamic> item = entry.value;
-                            return _itemGame(index+1, item);
-                          }).toList()
-                        ),
-                    )
-                  ],
-                ),
+                  )
+                ],
               )
               ,
                 Consumer<ActionProvider>(

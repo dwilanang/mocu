@@ -42,7 +42,6 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
   final int _mainAxisCount = 6;
   int _levelPlay = 1;
   int _limitRePlay = 3;
-  int _indexShowFood = 0;
   int _itemNotMatch = 0;
 
   bool _soundMode = true;
@@ -53,14 +52,30 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
   final CountDownController _controllerCountDownComplete = CountDownController();
 
   final Map<int, List<Map<String, dynamic>>> _itemsTarget = {
-    1: [ {'character':7, 'eat':'3'}, {'character':11, 'eat':'1,3'}, {'character':6, 'eat':'2'}, {'character':3, 'eat':'5'}, {'character':10, 'eat':'1,3,4,6'}, {'character':8, 'eat':'4,6'}],
-    2: [ {'character':5, 'eat':'1,3'}, {'character':1, 'eat':'5,2'}, {'character':9, 'eat':'1,3,4,6'}, {'character':2, 'eat':'5,2'}, {'character':4, 'eat':'2'}, {'character':12, 'eat':'7,8'}],
+    1: [ 
+      {'character':7, 'eat':'2'}, 
+      {'character':11, 'eat':'2,5'}, 
+      {'character':6, 'eat':'7,8'}, 
+      {'character':3, 'eat':'1,3'}, 
+      {'character':10, 'eat':'1,3,9'}, 
+      {'character':8, 'eat':'1,3,5,7'}
+    ],
+    2: [ 
+      {'character':5, 'eat':'1,3,9'}, 
+      {'character':1, 'eat':'2,5'}, 
+      {'character':9, 'eat':'2,5'}, 
+      {'character':2, 'eat':'3,4,6,9'}, 
+      {'character':4, 'eat':'2,5'}, 
+      {'character':12, 'eat':'1,3,4,6'}
+      ],
   };
 
   final Map<int, List<int>> _itemsFood = {
     1: [6, 4, 1, 3, 5, 2, 7],
     2: [3, 2, 5, 1, 6, 3, 8],
   };
+
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -106,6 +121,7 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
   @override
   void dispose() {
     _animationController['character']!.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -116,39 +132,59 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
     );
   }
 
-  Widget _itemFood(int itemFood){
-    return Center(
-      child: AnimatedBuilder(
-        animation:  _animation['character']!,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _animation['character']!.value,
-            child: child,
-          );
-        },
-        child: SvgPicture.asset(
-          utilItemImageAssetName('yummy/$itemFood'),
-          fit: BoxFit.contain,
+  Widget _itemFoodAsset(int foodId){
+      return  SvgPicture.asset(
+        utilItemImageAssetName('yummy/$foodId'),
+        height: 125.0,
+      );
+  }
+    
+  Widget _itemFood(int foodId){
+    return Card(
+      color: whiteOpacity,
+      child: Padding(
+        padding: EdgeInsets.all(10.0),
+        child: AnimatedBuilder(
+          animation:  _animation['character']!,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _animation['character']!.value,
+              child: child,
+            );
+          },
+          child: Padding(
+            padding: EdgeInsets.all(10.0),
+            child: _itemFoodAsset(foodId),
+          ),
         ),
-      ),
+      )
     );
   }
 
-  Widget _itemDrag(double screenWidth){
-    var itemFood = _itemsFood[_levelPlay]![_indexShowFood];
-
+  Widget _itemDrag(int foodId){
     return Draggable<int>(
-        data: itemFood,
+        data: foodId,
         onDragStarted: () {
           _audioUtils.play("click");
         },
-        feedback: SizedBox(
-          width: 100.0,
-          height: 100.0,
-          child: _itemFood(itemFood),
+        feedback: Padding(
+        padding: EdgeInsets.all(10.0),
+        child: AnimatedBuilder(
+          animation:  _animation['character']!,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _animation['character']!.value,
+              child: child,
+            );
+          },
+          child: Padding(
+            padding: EdgeInsets.all(10.0),
+            child: _itemFoodAsset(foodId),
+          ),
         ),
+      ),
         childWhenDragging: _emptyBoxWidget(),
-        child: _itemFood(itemFood),
+        child: _itemFood(foodId),
         onDragCompleted: () {
           setState((){
             if (_itemNotMatch > 0) {
@@ -156,13 +192,172 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
                   _itemNotMatch = 0;
               });
             }
-
             _itemDropToTarget = {};
           });
         },
         onDraggableCanceled: (a, b) {
           setState(()=>_itemDropToTarget = {});
         },
+      );
+  }
+
+  Widget _itemPlay(double screenWidth, screenHeight) {
+    const crossAxisCount = 2; // 1 kolom
+    final itemWidth = screenWidth / crossAxisCount;
+    final itemHeight = screenHeight / _mainAxisCount;
+
+    return Column(
+      children: <Widget>[
+        Expanded(
+          flex: 4,
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount, // Sesuaikan jumlah kolom
+              mainAxisExtent: (screenHeight / _mainAxisCount) + 25,
+            ),
+            itemCount: _mainAxisCount, // Sesuaikan jumlah item
+            itemBuilder: (BuildContext context, int index) {
+              var targetItem = _itemsTarget[_levelPlay]![index];
+
+              return _itemTarget(itemWidth, itemHeight, targetItem);
+            },
+          ),
+        ),
+        Expanded(
+          child: _isComplete
+              ? _matchCompleted()
+              : Row(
+                  children: [
+                    // Tombol Panah Kiri
+                    IconButton(
+                      icon: Icon(Icons.arrow_left, size: 40.0, color: white),
+                      onPressed: () {
+                        _scrollController.animateTo(
+                          _scrollController.offset - 100, // Geser ke kiri 100 piksel
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                    ),
+                    // Daftar Makanan
+                    Expanded(
+                       child: SingleChildScrollView(
+                        controller: _scrollController,
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: (_itemsFood[_levelPlay] as List<int>).map((foodId) {
+                            return _itemDrag(foodId);
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    // Tombol Panah Kanan
+                    IconButton(
+                      icon: Icon(Icons.arrow_right, size: 40.0, color: white),
+                      onPressed: () {
+                        _scrollController.animateTo(
+                          _scrollController.offset + 100, // Geser ke kanan 100 piksel
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+        ),
+        Expanded(
+          child: SizedBox(
+            height: 100.0,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _itemTarget(double itemWidth, itemHeight, Map<String, dynamic> targetItem){
+    return DragTarget<int>(
+          builder: (BuildContext context, List<dynamic> accepted, List<dynamic> rejected) {
+            return _itemDropToTarget[targetItem['character']] ?? false ?
+              DottedBorder(
+                color: brown,
+                strokeWidth: 2.0,
+                borderType: BorderType.Circle,
+                child: Center(
+                  child: Container(
+                    width: itemWidth,
+                    height: itemHeight,
+                    decoration: BoxDecoration(
+                      color: whiteOpacity,
+                      shape: BoxShape.circle, // Bentuk bulat
+                    ),
+                    child: _itemAnimationWidget(targetItem['character']),
+                  ),
+                ),
+              )
+              :
+              Center(
+                child: Container(
+                  width: itemWidth,
+                  height: itemHeight,
+                  decoration: BoxDecoration(
+                    color: _itemNotMatch == targetItem['character'] ? red : _itemMatch[targetItem['character']] ?? false ? green : whiteOpacity,
+                    shape: BoxShape.circle, // Bentuk bulat
+                  ),
+                  child: _itemAnimationWidget(targetItem['character']),
+                ),
+              );
+          },
+          onWillAcceptWithDetails: (details) {
+
+            if (_itemMatch[targetItem['character']] == true) {
+              return false;
+            }
+
+            setState((){
+              _itemDropToTarget = {};
+              _itemDropToTarget[targetItem['character']] = true;
+            });
+
+            return true;
+          },
+          onAcceptWithDetails: (details) {
+            var isMatch = targetItem['eat'].toString().contains(details.data.toString());
+
+            if (isMatch) {
+              _audioUtils.play('yummy');
+
+              setState(() {
+                _itemDropToTarget = {};
+                _itemMatch[targetItem['character']] = isMatch;
+              });
+
+              if (_itemMatch.length == _mainAxisCount) {
+                setState(() {
+                  _isComplete = true;
+                });
+
+                _controllerCountDown.pause();
+              }
+            } else {
+              _audioUtils.play('yucky');
+              
+              setState(() {
+                _itemNotMatch = targetItem['character'];
+              });
+
+              Future.delayed(Duration(seconds: 2), (){
+                  setState(() {
+                    _itemNotMatch = 0;
+                  });
+              });
+
+              _increaseLimitPlay();
+
+              _stopCoundDown();
+            }
+          },
       );
   }
 
@@ -247,11 +442,6 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
           },
           onTimeRun: (v){
             _setPointPlay(v);
-              int limitPlay = _limitPlay[_levelPlay] ?? 0;
-              if (limitPlay == 0) {
-                _limitRePlay--;
-                return;
-              }
           },
         );
   }
@@ -261,6 +451,7 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
       _controllerCountDown.pause();
 
       if (_limitRePlay == 1){
+        _limitRePlay = 0;
         _gameOver(_levelPlay);
         return;
       }
@@ -287,6 +478,12 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
                 if (_levelPlay == 3) {
                   _levelPlay = 1;
                 }
+                
+                int limitPlay = _limitPlay[_levelPlay] ?? 0;
+                if (limitPlay == 0) {
+                  _limitRePlay--;
+                }
+
                 _setAttributePlay(_levelPlay);
                 _controllerCountDown.restart();
                 Navigator.pop(context);
@@ -449,12 +646,6 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
     }
   }
 
-  void _increaseLimitRePlay() {
-      setState(() {
-        _limitRePlay--;
-      });
-  }
-
   void _setPointPlay(String result) {
     if (result != "0") {
       _pointPlay[_levelPlay] = result;
@@ -498,10 +689,6 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    const crossAxisCount = 2; // 1 kolom
-    final itemWidth = screenWidth / crossAxisCount;
-    final itemHeight = screenHeight / _mainAxisCount;
-
     return WillPopScope(
       onWillPop: () async {
         Navigator.pop(context); // Kembali ke halaman sebelumnya
@@ -510,7 +697,7 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
       },
       child: Scaffold(
         extendBodyBehindAppBar: true, // Membuat body berada di belakang AppBar
-        backgroundColor: softBrown,
+        backgroundColor: superLightBrown,
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: _sectionTop(),
@@ -520,15 +707,11 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
         body: SafeArea(
           child: Stack(
             children: [
-              Center(
-                child: AnimatedBuilder(
-                  animation:  _animation['character']!,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _animation['character']!.value,
-                      child: child,
-                    );
-                  },
+              SizedBox(
+                height: double.infinity,
+                width: double.infinity,
+                child: FittedBox(
+                  fit: BoxFit.cover,
                   child: SvgPicture.asset(
                     utilItemImageAssetName('bg$_levelPlay'),
                     width: screenWidth,
@@ -547,144 +730,8 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              Column(
-                children: <Widget>[
-                  Expanded(
-                    flex: 4,
-                    child: GridView.builder(
-                      shrinkWrap: true, 
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount, // Sesuaikan jumlah kolom
-                        mainAxisExtent: (screenHeight / _mainAxisCount)+25,
-                      ),
-                      itemCount: _mainAxisCount, // Sesuaikan jumlah item
-                      itemBuilder: (BuildContext context, int index) {
-                        var targetItem = _itemsTarget[_levelPlay]![index];
-
-                        return DragTarget<int>(
-                            builder: (BuildContext context, List<dynamic> accepted, List<dynamic> rejected) {
-                              return _itemDropToTarget[targetItem['character']] ?? false ?
-                                DottedBorder(
-                                  color: brown,
-                                  strokeWidth: 2.0,
-                                  borderType: BorderType.Circle,
-                                  child: Center(
-                                    child: Container(
-                                      width: itemWidth,
-                                      height: itemHeight,
-                                      decoration: BoxDecoration(
-                                        color: whiteOpacity,
-                                        shape: BoxShape.circle, // Bentuk bulat
-                                      ),
-                                      child: _itemAnimationWidget(targetItem['character']),
-                                    ),
-                                  ),
-                                )
-                                :
-                                Center(
-                                  child: Container(
-                                    width: itemWidth,
-                                    height: itemHeight,
-                                    decoration: BoxDecoration(
-                                      color: _itemNotMatch == targetItem['character'] ? red : _itemMatch[targetItem['character']] ?? false ? green : whiteOpacity,
-                                      shape: BoxShape.circle, // Bentuk bulat
-                                    ),
-                                    child: _itemAnimationWidget(targetItem['character']),
-                                  ),
-                                );
-                            },
-                            onWillAcceptWithDetails: (details) {
-
-                              if (_itemMatch[targetItem['character']] == true) {
-                                return false;
-                              }
-
-                              setState((){
-                                _itemDropToTarget = {};
-                                _itemDropToTarget[targetItem['character']] = true;
-                              });
-
-                              return true;
-                            },
-                            onAcceptWithDetails: (details) {
-                              var isMatch = targetItem['eat'].toString().contains(details.data.toString());
-
-                              final random = Random();
-
-                              if (isMatch) {
-                                _audioUtils.play('yummy');
-
-                                setState(() {
-                                  _itemDropToTarget = {};
-                                  _itemMatch[targetItem['character']] = isMatch;
-                                  _indexShowFood = random.nextInt(6);
-                                });
-
-                                if (_itemMatch.length == _mainAxisCount) {
-                                  setState(() {
-                                    _isComplete = true;
-                                  });
-
-                                  _controllerCountDown.pause();
-                                }
-                              } else {
-                                _audioUtils.play('yucky');
-                                
-                                setState(() {
-                                  _itemNotMatch = targetItem['character'];
-                                  _indexShowFood = random.nextInt(6);
-                                });
-
-                                Future.delayed(Duration(seconds: 2), (){
-                                    setState(() {
-                                      _itemNotMatch = 0;
-                                    });
-                                });
-
-                                _increaseLimitPlay();
-
-                                _stopCoundDown();
-                              }
-                            },
-                        );
-                      },
-                    ),
-                  ),
-                  Expanded(
-                    child: _isComplete ? 
-                    _matchCompleted() 
-                    :
-                    GestureDetector(
-                        onTapUp: (_) {
-                          final random = Random();
-
-                          setState(() {
-                            _indexShowFood = random.nextInt(7);
-                          });
-                        },
-                        child: SizedBox(
-                          width: screenWidth/3,
-                          child:  Card(
-                            color: white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(100), // Oval
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(10.0),
-                              child: _itemDrag(screenWidth),
-                            )
-                          )
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: SizedBox(
-                        height: 100.0
-                    ),
-                  ),
-                ],
-              ),
+              
+              _itemPlay(screenWidth, screenHeight)
             ],
           )
         ),

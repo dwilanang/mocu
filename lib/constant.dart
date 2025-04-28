@@ -15,8 +15,8 @@ Color softBrownOpacity = Colors.brown.shade200.withOpacity(0.5);
 Color green = Colors.green.shade100;
 Color skyBlue = HexColor.fromHex('#38b6ff');
 Color darkYellow = HexColor.fromHex('#ffbd59');
-Color darkBrown = HexColor.fromHex('#5f3030');
-Color superLightBrown = HexColor.fromHex('#f7d5d4');
+Color darkBrown = HexColor.fromHex('#8E5313');
+Color superLightBrown = HexColor.fromHex('#B06E1C');
 
 List dataColors = [
     Colors.blue,

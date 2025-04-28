@@ -24,7 +24,7 @@ class SectionTop extends StatelessWidget {
         children: [
           Flexible(
             child: Card(
-              color: whiteOpacity, // Hitam transparan
+              color: white, // Hitam transparan
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(100), // Oval
               ),
@@ -42,7 +42,7 @@ class SectionTop extends StatelessWidget {
           ),
           Flexible(
             child: Card(
-              color: whiteOpacity, // Hitam transparan
+              color: white, // Hitam transparan
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(100), // Oval
               ),
@@ -60,7 +60,7 @@ class SectionTop extends StatelessWidget {
           ),
           Flexible(
             child: Card(
-              color: whiteOpacity, // Hitam transparan
+              color: white, // Hitam transparan
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(100), // Oval
               ),

@@ -137,7 +137,7 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
 
    Widget _itemImageWidget(dynamic name) {
     return SvgPicture.asset(
-      utilItemImageAssetName("items/$name"),
+      utilItemImageAssetName("match/shadow/$name"),
       width: 120.0,
       fit: BoxFit.contain,
     );
@@ -265,8 +265,7 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
     const increaseScreenHeight = 200;
     double sizeItem = (screenHeight - increaseScreenHeight) / _mainAxisCount;
 
-    return Flexible(
-      child: Row(
+    return Row(
         children: [
           Expanded(
             child: GridView.builder(
@@ -385,8 +384,7 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _matchCompleted(double screenHeight) {
@@ -502,7 +500,7 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
         });
     }
                   
-    return Flexible(
+    return Expanded(
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -667,15 +665,11 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
         body: SafeArea(
           child: Stack(
             children: [
-              Center(
-                child: AnimatedBuilder(
-                  animation:  _animation['character']!,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _animation['character']!.value,
-                      child: child,
-                    );
-                  },
+              SizedBox(
+                height: double.infinity,
+                width: double.infinity,
+                child: FittedBox(
+                  fit: BoxFit.cover,
                   child: SvgPicture.asset(
                     utilItemImageAssetName('bg$_levelPlay'),
                     width: screenWidth,

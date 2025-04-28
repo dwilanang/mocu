@@ -412,15 +412,6 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
       });
     });
 
-    animation['character'] = AnimationUtils.createAnimationRepeat(
-        vsync: this,
-        duration: const Duration(seconds: 1),
-        begin: 0.9, end: 1.0
-    );
-   
-    _animationController['character'] = animation['character']['controller'];
-    _animation['character'] = animation['character']['animation'];
-
     animation['replay'] = AnimationUtils.createAnimation(
       vsync: this,
       duration: const Duration(milliseconds: 100),
@@ -445,7 +436,6 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
   @override
   void dispose() {
     _audioUtils.stopAll();
-    _animationController['character']!.dispose();
     _animationController['replay']!.dispose();
     _animationController['sound']!.dispose();
     super.dispose();
@@ -481,15 +471,11 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
         ),
         body: Stack(
           children: [
-              Center(
-                child: AnimatedBuilder(
-                  animation:  _animation['character']!,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _animation['character']!.value,
-                      child: child,
-                    );
-                  },
+              SizedBox(
+                height: double.infinity,
+                width: double.infinity,
+                child: FittedBox(
+                  fit: BoxFit.cover,
                   child: SvgPicture.asset(
                     utilItemImageAssetName('bg$_levelPlay'),
                     width: screenWidth,

@@ -42,7 +42,7 @@ class SectionBottom extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
         height: 100.0, // Tinggi BottomSheet
-        color:softBrown,
+        color:superLightBrown,
         padding: EdgeInsets.all(5.0),
         child: Row(
           children: [
@@ -63,7 +63,7 @@ class SectionBottom extends StatelessWidget {
                           );
                         },
                         child: Card(
-                          color: whiteOpacity, // Hitam transparan
+                          color: white, // Hitam transparan
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(100), // Oval
                           ),
@@ -116,7 +116,7 @@ class SectionBottom extends StatelessWidget {
                           );
                         },
                         child: Card(
-                          color: whiteOpacity, // Hitam transparan
+                          color: white, // Hitam transparan
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(100), // Oval
                           ),

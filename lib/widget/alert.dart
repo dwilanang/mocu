@@ -31,7 +31,7 @@ class CustomAlertDialog extends StatelessWidget {
               title != null ? Text(
                 title,
                 style: TextStyle(
-                  color: brown,
+                  color: white,
                   fontSize: 15.0,
                   fontFamily: fontFamilyDynaPuff,
                 ),
@@ -42,7 +42,7 @@ class CustomAlertDialog extends StatelessWidget {
               subTitle != null ? Text(
                 subTitle,
                 style: TextStyle(
-                  color: brown,
+                  color: white,
                   fontSize: 15.0,
                   fontFamily: fontFamilyDynaPuff,
                   // fontWeight: FontWeight.bold,
@@ -73,10 +73,10 @@ class CustomAlertDialog extends StatelessWidget {
       : 
       AlertDialog(
       content: SizedBox(
-        height: screenHeight / 3,
+        height: screenHeight / 2,
         child: bgItem == null ? 
           Card(
-              color: whiteOpacity, // Hitam transparan
+              color: superLightBrown, // Hitam transparan
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10), // Oval
               ),
@@ -85,16 +85,12 @@ class CustomAlertDialog extends StatelessWidget {
               :
           Stack(
             children: [
-              SvgPicture.asset(
+             SvgPicture.asset(
                 "assets/images/$bgItemAsset.svg",
-                fit: BoxFit.fill,
+                height: double.infinity,
+                width: double.infinity,
               ),
-              Container(
-                margin: EdgeInsets.only(top: 100.0),
-                child:  Center(
-                  child: _body(title, subTitle, content),
-                ),
-              ),
+              _body(title, subTitle, content),
             ],
           ),
       ),
