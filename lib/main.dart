@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:mocu/pages/welcome.dart';
+import 'package:mocu/pages/games.dart';
 import 'package:mocu/routes.dart';
 import 'package:mocu/constant.dart';
 import 'package:mocu/provider/action.dart';
@@ -26,14 +26,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'play mocu',
+      title: 'Dinosaur by Mocu',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: skyBlue),
+        colorScheme: ColorScheme.fromSeed(seedColor: softBrown),
         useMaterial3: true,
       ),
       onGenerateRoute: AppRoutes.onGenerateRoutes,
       debugShowCheckedModeBanner: false,
-      home: const Welcome(),
+      home: const Games(),
     );
   }
 }

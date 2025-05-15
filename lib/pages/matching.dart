@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:rive/rive.dart';
 import 'package:dotted_border/dotted_border.dart';
@@ -13,7 +13,7 @@ import 'package:mocu/widget/rating.dart';
 import 'package:mocu/widget/sectionbottom.dart';
 import 'package:mocu/widget/sectiontop.dart';
 import 'package:mocu/widget/countdowncompleted.dart';
-// import 'package:mocu/provider/action.dart';
+import 'package:mocu/provider/action.dart';
 import 'package:mocu/util/utils.dart';
 
 class Matching extends StatefulWidget {
@@ -198,12 +198,7 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
             _animationController['sound']!.forward();
             setState(() {
               _soundMode = !_soundMode;
-
-              if (_soundMode) {
-                  _audioUtils.play("backsound", loop: true);
-              } else {
-                  _audioUtils.stop("backsound");
-              }
+              context.read<ActionProvider>().setExecAction("sound", _soundMode);
             });
           },
           onSoundTapCancel: (){
@@ -387,14 +382,46 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
       );
   }
 
-  Widget _matchCompleted(double screenHeight) {
-    const crossAxisCount = 1;
-    const increaseScreenHeight = 200;
+  void _matchCompleted() {
+    // const crossAxisCount = 1;
+    // const increaseScreenHeight = 200;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_loadingStartLevel) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+            showAlertDialog(
+              context,
+              content: CountDownCompleted(
+                countDownAutoStart: true, 
+                durationCountDown: 4, 
+                controllerCountDown: _controllerCountDownComplete, 
+                onChange: (v){
+                    if (v == '1'){
+                        Navigator.pop(context); // Tutup dialog
 
-    if (!_loadingStartLevel && _itemMatch.length == _mainAxisCount) {
-      _controllerCountDown.pause();
+                        _controllerCountDownComplete.reset();
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        Future.delayed(Duration(seconds: 1), (){
+                          int level = _levelPlay;
+                          if (_levelPlay < 3) {
+                            level++;
+                          }
+                          
+                          _setAttributePlay(level);
+
+                          _controllerCountDown.restart();
+                          
+                      });
+                    }
+                }
+              )
+            );
+        });
+        return;
+
+      }else if (!_loadingStartLevel && _itemMatch.length == _mainAxisCount) {
+        _controllerCountDown.pause();
+
+     
         if (_levelPlay == 3) {
           //Nilai Akhir = ( (K1 + K2 + K3) / 3 * 0.6 ) + ( (T1 + T2 + T3) / 3 * 0.4 )
 
@@ -440,89 +467,58 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
             },
           );
           
-          return;
+        } else {
+          _audioUtils.play('success');
+
+          showAlertDialog(
+            context,
+            title: "Yeyyy!",
+            subTitle: "Your Roarsome",
+            buttonTitle: "Continue",
+            content:  SvgPicture.asset(
+                utilItemImageAssetName('complete'),
+                width: 100.0,
+                fit: BoxFit.cover,
+              ),
+            callback: (v) {
+              if (v == 'click') {
+                  Navigator.pop(context); // Tutup dialog
+
+                  setState(() {
+                    _loadingStartLevel = true;
+                  });
+              }
+            },
+          );
         }
 
-        _audioUtils.play('success');
-
-        showAlertDialog(
-          context,
-          title: "Yeyyy!",
-          subTitle: "Your Roarsome",
-          buttonTitle: "Continue",
-          content:  SvgPicture.asset(
-              utilItemImageAssetName('complete'),
-              width: 100.0,
-              fit: BoxFit.cover,
-            ),
-          callback: (v) {
-            if (v == 'click') {
-                Navigator.pop(context); // Tutup dialog
-
-                setState(() {
-                  _loadingStartLevel = true;
-                });
-            }
-          },
-        );
-      });
-    } 
-    
-    if (_loadingStartLevel) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-            showAlertDialog(
-              context,
-              content: CountDownCompleted(
-                countDownAutoStart: true, 
-                durationCountDown: 4, 
-                controllerCountDown: _controllerCountDownComplete, 
-                onChange: (v){
-                    if (v == '1'){
-                        Navigator.pop(context); // Tutup dialog
-
-                        _controllerCountDownComplete.reset();
-
-                        Future.delayed(Duration(seconds: 1), (){
-                          int level = _levelPlay;
-                          if (_levelPlay < 3) {
-                            level++;
-                          }
-                          
-                          _setAttributePlay(level);
-
-                          _controllerCountDown.restart();
-                          
-                      });
-                    }
-                }
-              )
-            );
-        });
-    }
+        return;
+      } 
+    });
                   
-    return Expanded(
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
-          mainAxisExtent: (screenHeight - increaseScreenHeight) / _mainAxisCount,
-        ),
-        itemCount: crossAxisCount * _mainAxisCount,
-        itemBuilder: (BuildContext context, int index) {
-          int item = _itemsLeft[_levelPlay]![index];
+    // return Expanded(
+    //   child: GridView.builder(
+    //     shrinkWrap: true,
+    //     physics: const NeverScrollableScrollPhysics(),
+    //     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+    //       crossAxisCount: crossAxisCount,
+    //       mainAxisExtent: (screenHeight - increaseScreenHeight) / _mainAxisCount,
+    //     ),
+    //     itemCount: crossAxisCount * _mainAxisCount,
+    //     itemBuilder: (BuildContext context, int index) {
+    //       int item = _itemsLeft[_levelPlay]![index];
 
-          return Card(
-            color: whiteOpacity, // Hitam transparan
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(100), // Oval
-            ),
+    //       return Card(
+    //         color: whiteOpacity, // Hitam transparan
+    //         shape: RoundedRectangleBorder(
+    //           borderRadius: BorderRadius.circular(100), // Oval
+    //         ),
             
-            child: _itemAnimationWidget(item)
-          );
-        },
-      ),
-    );
+    //         child: _itemAnimationWidget(item)
+    //       );
+    //     },
+    //   ),
+    // );
   }
 
   void _stopCoundDown() {
@@ -647,15 +643,19 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
+    if (_itemMatch.length == _mainAxisCount) {
+      _matchCompleted();
+    }
+
     return WillPopScope(
       onWillPop: () async {
-        Navigator.pop(context); // Kembali ke halaman sebelumnya
+         Navigator.pop(context); // Kembali ke halaman sebelumnya
     
         return false;
       },
       child: Scaffold(
         extendBodyBehindAppBar: true, // Membuat body berada di belakang AppBar
-        backgroundColor: softBrown,
+        backgroundColor: superLightBrown,
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: _sectionTop(),
@@ -690,9 +690,7 @@ class _MatchingState extends State<Matching> with TickerProviderStateMixin {
               ),
               Padding(
                 padding: EdgeInsets.all(25.0),
-                child: _itemMatch.length == _mainAxisCount? 
-                          _matchCompleted(screenHeight)
-                        : _matchPlay(screenWidth, screenHeight),
+                child: _matchPlay(screenWidth, screenHeight),
               ),
               // Consumer<ActionProvider>(
               //   builder: (context, model, child) {

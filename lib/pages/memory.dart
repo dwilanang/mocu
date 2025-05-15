@@ -1,5 +1,5 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flip_card/flip_card.dart' as flip_card;
 import 'package:flip_card/flip_card_controller.dart';
 import 'package:rive/rive.dart';
@@ -14,6 +14,8 @@ import 'package:mocu/util/animation.dart';
 import 'package:mocu/widget/sectiontop.dart';
 import 'package:mocu/widget/sectionbottom.dart';
 import 'package:mocu/widget/countdowncompleted.dart';
+import 'package:mocu/widget/rating.dart';
+import 'package:mocu/provider/action.dart';
 
 class Memory extends StatefulWidget {
   const Memory({super.key});
@@ -41,7 +43,8 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
   final int _mainAxisCount = 3;
   int _levelPlay = 1;
   int _limitRePlay = 3;
-  int _itemNotMatch = 0;
+  int _itemOK = 0;
+  final int _maxLevel = 4;
 
   bool _isIntro = false;
   bool _soundMode = true;
@@ -71,33 +74,34 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
     );
   }
 
-  void _generateList(){
-      _items[_levelPlay]!.shuffle(Random());
+  void _generateList(int levelPlay){
+    _items[levelPlay]!.shuffle();
 
-      int i = 0;
-      for (var index in _items[_levelPlay]!) {
-          
-        _flipCardController.add(FlipCardController());
+    _itemsWidget.clear();
 
-        _itemsWidget.add(MemoryModel(
-          index: i,
-          id: "item-$index",
-          widget:  Stack(
-            children: [
-              Container(
-                color: softBrownOpacity,
-                width: double.infinity,
-                height: double.infinity,
-              ),
-              Align(
-                alignment: Alignment.bottomCenter, // Posisi di bawah tengah
-                child: _itemAnimationWidget(index),
-              ),
-            ],
-          ),
-        ));
-        i++;
-      }
+    int i = 0;
+    for (var index in _items[levelPlay]!) {
+      _flipCardController.add(FlipCardController());
+
+      _itemsWidget.add(MemoryModel(
+        index: i,
+        id: "item-$index",
+        widget:  Stack(
+          children: [
+            Container(
+              color: softBrownOpacity,
+              width: double.infinity,
+              height: double.infinity,
+            ),
+            Align(
+              alignment: Alignment.bottomCenter, // Posisi di bawah tengah
+              child: _itemAnimationWidget(index),
+            ),
+          ],
+        ),
+      ));
+      i++;
+    }
   }
 
   void _increaseLimitPlay() {
@@ -109,19 +113,28 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
   }
 
   void _setAttributePlay(int levelPlay) {
-    _audioUtils.play('start');
-
     setState(() {
-      _loadingStartLevel = false;
+      _isIntro = false;
+      _itemOK = 0;
       _itemMatch = {};
+      _itemFlipOpen = [];
       _levelPlay = levelPlay;
+      _loadingStartLevel = false;
       _limitPlay[levelPlay] = _limitPlayLevel[levelPlay]!;
     });
 
-    _generateList();
+    _generateList(levelPlay);
 
-    _itemsWidget.shuffle(Random());
-    dataColors.shuffle(Random());
+    _itemsWidget.shuffle();
+    dataColors.shuffle();
+
+    _audioUtils.play('start');
+
+    Future.delayed(const Duration(seconds: 2), (){
+      setState(() {
+        _isIntro = true;
+      });
+    });
   }
 
   void _setPointPlay(String result) {
@@ -147,12 +160,12 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
 
     _controllerCountDown.restart();
 
+    _generateList(_levelPlay);
+
+    _itemsWidget.shuffle();
+    dataColors.shuffle();
+
     _resetAllCards();
-
-    _generateList();
-
-    _itemsWidget.shuffle(Random());
-    dataColors.shuffle(Random());
   }
   
   void _resetPlay() {
@@ -164,17 +177,12 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
       _itemFlipOpen = [];
       _levelPlay = 1;
       _limitRePlay = 3;
-      _limitPlay[_levelPlay] = 3;
+      _limitPlay[_levelPlay] = _limitPlayLevel[_levelPlay]!;
     });
 
+    _initGame();
     _controllerCountDown.restart();
-
     _resetAllCards();
-
-    _generateList();
-
-    _itemsWidget.shuffle(Random());
-    dataColors.shuffle(Random());
   }
   
   void _resetAllCards() {
@@ -230,7 +238,7 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
             _audioUtils.play("click");
             _animationController['replay']!.forward();
 
-            _restartPlay();
+            _resetPlay();
           },
           onResetTapCancel: (){
             _animationController['replay']!.reverse();
@@ -240,12 +248,7 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
             _animationController['sound']!.forward();
             setState(() {
               _soundMode = !_soundMode;
-
-              if (_soundMode) {
-                  _audioUtils.play("backsound", loop: true);
-              } else {
-                  _audioUtils.stop("backsound");
-              }
+              context.read<ActionProvider>().setExecAction("sound", _soundMode);
             });
           },
           onSoundTapCancel: (){
@@ -315,33 +318,66 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
   }
 
   void _checkItemMatch(){
-    if (_limitPlay[_levelPlay]! > 0) {
-                        
-        // Jika dua kartu sudah dibuka, periksa apakah cocok
-      if (_itemFlipOpen.length == 2) {
-          var indexOrigin = _itemFlipOpen[0].index;
-          var idOrigin = _itemFlipOpen[0].id;
 
-          if(_itemFlipOpen.length == 1){
-              _itemMatch[indexOrigin] = idOrigin;
-          }else if (_itemFlipOpen.length == 2) {
+    if (_limitPlay[_levelPlay]! > 0) {  
+
+      if (_loadingStartLevel) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+              showAlertDialog(
+                context,
+                content: CountDownCompleted(
+                  countDownAutoStart: true, 
+                  durationCountDown: 4, 
+                  controllerCountDown: _controllerCountDownComplete, 
+                  onChange: (v){
+                      if (v == '1'){
+                          Navigator.pop(context); // Tutup dialog
+                          
+                          _controllerCountDownComplete.reset();
+                          Future.delayed(Duration(seconds: 1), (){
+                            int level = _levelPlay;
+                            if (_levelPlay < _maxLevel) {
+                              level++;
+                            }
+                            
+                            _setAttributePlay(level);
+
+                            _controllerCountDown.restart();
+                            
+                        });
+                      }
+                  }
+                )
+              );
+          });
+          return;
+      }
+      
+      // Jika dua kartu sudah dibuka, periksa apakah cocok
+      if (_itemFlipOpen.length == 2) {
+         
+          
+          if (_itemFlipOpen.length == 2) {
+            var indexOrigin = _itemFlipOpen[0].index;
+            var idOrigin = _itemFlipOpen[0].id;
+
             var idDestination = _itemFlipOpen[1].id;
             var indexDestination = _itemFlipOpen[1].index;
 
             if (idOrigin == idDestination) {
-                
+                _itemOK++;
+                _itemMatch[indexOrigin] = idOrigin;
                 _itemMatch[indexDestination] = idDestination;
 
-                // if (!done) _audio.soundOk();
                 _audioUtils.play('ok');
             } else {
-                // if (_countLimitTry == 0) return;
 
                 _audioUtils.play('fail');
                 _limitPlay[_levelPlay] = _limitPlay[_levelPlay]! - 1;
                 
                 Future.delayed(const Duration(milliseconds: 100), (){
-                    // _itemFlipOpen.removeWhere((item) => item.index == indexDestination);
+                    _itemFlipOpen.removeWhere((item) => item.index == indexOrigin);
+                    _itemFlipOpen.removeWhere((item) => item.index == indexDestination);
                     _flipCardController[indexOrigin].toggleCard();
                     _flipCardController[indexDestination].toggleCard();
                 });
@@ -350,6 +386,88 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
           }
       }
     }
+  }
+
+  void _itemMatchComplete() {
+    if (!_loadingStartLevel && _itemFlipOpen.length == 1 && _itemOK == 2){
+         _controllerCountDown.pause();
+
+         WidgetsBinding.instance.addPostFrameCallback((_) {
+
+           if (_levelPlay == _maxLevel) {
+              _itemMatchDone();
+              return;
+           }
+
+          _audioUtils.play('success');
+
+          showAlertDialog(
+            context,
+            title: "Yeyyy!",
+            subTitle: "Your Roarsome",
+            buttonTitle: "Continue",
+            content:  SvgPicture.asset(
+                utilItemImageAssetName('complete'),
+                width: 100.0,
+                fit: BoxFit.cover,
+              ),
+            callback: (v) {
+              if (v == 'click') {
+                Navigator.pop(context); // Tutup dialog
+
+                setState(() {
+                  _loadingStartLevel = true;
+                });
+              }
+            },
+          );
+        });
+    }
+  }
+
+  void _itemMatchDone(){
+      //Nilai Akhir = ( (K1 + K2 + K3) / 3 * 0.6 ) + ( (T1 + T2 + T3) / 3 * 0.4 )
+
+      int totalPointSpeed = (int.parse(_pointPlay[1]!) + int.parse(_pointPlay[2]!) + int.parse(_pointPlay[3]!) + int.parse(_pointPlay[4]!));
+      
+      double totalCalculateSpeed = (totalPointSpeed / _maxLevel) * 0.6;
+
+      int totalCalculateSpeedRound = totalCalculateSpeed.round();
+
+      int totalPointAccuracy = (_limitPlay[1]! + _limitPlay[2]! + _limitPlay[3]! + _limitPlay[4]!);
+
+      double totalCalculateAccuracy = (totalPointAccuracy / _maxLevel) * 0.4;
+
+      int totalCalculateAccuracyRound = totalCalculateAccuracy.round();
+
+      double rating = (totalCalculateSpeedRound + totalCalculateAccuracyRound)/2;
+
+      int finalRating = utilPointStar(rating);
+
+      if (finalRating >= 4){
+        _audioUtils.play('great');
+      } else {
+        _audioUtils.play('completed');
+      }
+
+      showAlertDialog(
+        context,
+        bgitem: 'bgboard',
+        title: "Roarsome!",
+        buttonTitle: "Continue",
+        content: StarRating(
+            rating: finalRating, // Nilai rating yang ingin ditampilkan
+            color: brown,
+        ),
+        callback: (v) {
+          if (v == 'click') {
+            _controllerCountDown.pause();
+
+            Navigator.pop(context); // Tutup dialog
+            Navigator.pop(context); // Kembali ke halaman sebelumnya
+          }
+        },
+      );
   }
 
   void  _checkLimit(){
@@ -361,7 +479,7 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
         return;
       }
 
-      if (_levelPlay == 3) {
+      if (_levelPlay == _maxLevel) {
         _audioUtils.play('lose');
       } else {
         _audioUtils.play('timeup');
@@ -380,7 +498,7 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
           ),
           callback: (v) {
             if (v == 'click') {
-                if (_levelPlay == 3) {
+                if (_levelPlay == _maxLevel) {
                   _levelPlay = 1;
                 }
                 _setAttributePlay(_levelPlay);
@@ -395,6 +513,20 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
     }
   }
 
+  void _initGame() {
+    Future.delayed(const Duration(seconds: 2), (){
+      setState(() {
+        _isIntro = true;
+      });
+    });
+
+    dataColors.shuffle();
+
+    _generateList(_levelPlay);
+
+    _itemsWidget.shuffle();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -402,15 +534,8 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
     _audioUtils.play('start');
 
     _limitPlay[_levelPlay] = _limitPlayLevel[_levelPlay]!;
-    _generateList();
 
-    dataColors.shuffle(Random());
-
-    Future.delayed(const Duration(seconds: 2), (){
-      setState(() {
-        _isIntro = true;
-      });
-    });
+    _initGame();
 
     animation['replay'] = AnimationUtils.createAnimation(
       vsync: this,
@@ -462,7 +587,7 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
       },
       child: Scaffold(
         extendBodyBehindAppBar: true, // Membuat body berada di belakang AppBar
-        backgroundColor: softBrown,
+        backgroundColor: superLightBrown,
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: _sectionTop(),
@@ -505,6 +630,7 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
                 itemBuilder: (context, index) {
                   
                   if (_isIntro){
+                      
                       if (_itemMatch.isNotEmpty && _itemMatch[index] != null){
                           return _itemCard(index);
                       } 
@@ -523,7 +649,7 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
                               width: double.infinity,
                               height: double.infinity,
                               child: Center(
-                                child: Text("$index",
+                                child: Text("?",
                                   style: TextStyle(
                                     color: white,
                                     fontSize: 50.0,
@@ -538,20 +664,21 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
                         back: _itemCard(index),
                         onFlip: (){
                             _audioUtils.play('click');
+
                             _checkLimit();
                         },
                         onFlipDone: (isFlip){
-                          setState(() {
 
                             if(!isFlip) return;
 
-                            int flipLength = _itemFlipOpen.length;
-                            if (flipLength <2) {
-                              setState(() {
-                                _itemFlipOpen.add(_itemsWidget[index]);
+                            _itemMatchComplete();
+
+                            setState(() {
+                                _itemFlipOpen.add(MemoryModel(
+                                  index: index, 
+                                  id: _itemsWidget[index].id, 
+                                ));
                             });
-                            }
-                          });
                         },
                         // autoFlipDuration: const Duration(seconds: 2), // The flip effect will work automatically after the 2 seconds
                     );
@@ -562,7 +689,7 @@ class _MemoryState extends State<Memory> with TickerProviderStateMixin {
               ),
           ],
         ),
-          bottomSheet: _sectionBottom(),
+        bottomSheet: _sectionBottom(),
       )
     );
   }

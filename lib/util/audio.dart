@@ -36,10 +36,12 @@ class AudioUtils {
   }
 
   Future<void> stopAll() async {
-    for (var player in _soundPlayers.values) {
-      await player.stop();
+    if (_soundPlayers.isEmpty) return;
+
+    for (var entry in _soundPlayers.entries.toList()) {
+      await entry.value.stop();
+      _soundPlayers.remove(entry.key);
     }
-    _soundPlayers.clear();
   }
 
   Future<void> setVolume(String name, double volume) async {

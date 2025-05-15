@@ -75,7 +75,7 @@ class SectionTop extends StatelessWidget {
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );

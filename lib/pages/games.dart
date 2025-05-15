@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -10,9 +9,6 @@ import 'package:mocu/provider/action.dart';
 import 'package:mocu/widget/sectionbottom.dart';
 import 'package:mocu/util/utils.dart';
 
-import 'package:rive/rive.dart';
-import 'package:mocu/util/utils.dart';
-
 class Games extends StatefulWidget {
   const Games({super.key});
 
@@ -21,7 +17,7 @@ class Games extends StatefulWidget {
   _GamesState createState() => _GamesState();
 }
 
-class _GamesState extends State<Games> with TickerProviderStateMixin {
+class _GamesState extends State<Games> with TickerProviderStateMixin, WidgetsBindingObserver {
 
   final AudioUtils _audioUtils = AudioUtils();
 
@@ -38,7 +34,8 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
       {'title': "Matching", 'page':'/matching'}, 
       {'title': "Yummy", 'page':'/yummy-yucky'}, 
       {'title': "Memory", 'page':'/memory'}, 
-      {'title': "About Dino", 'page':'/aboutdino'}
+      // {'title': "Crack Egg", 'page':'/crack-egg'}, 
+      {'title': "About Dino", 'page':'/about-dino'}
   ];
 
   bool _soundMode = true;
@@ -47,7 +44,10 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    // _audioUtils.play("backsound", loop: true);
+    // Tambahkan observer untuk mendeteksi perubahan lifecycle
+    WidgetsBinding.instance.addObserver(this);
+
+    _audioUtils.play("backsound", loop: true);
 
     animation['sound'] = AnimationUtils.createAnimation(
       vsync: this,
@@ -59,7 +59,7 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
     _animationController['sound'] = animation['sound']['controller'];
     _animation['sound'] = animation['sound']['animation'];
 
-    for (int i = 1; i <= 4; i++) {
+    for (int i = 1; i <= _listGame.length; i++) {
       playAnimation[i] = AnimationUtils.createAnimation(
           vsync: this,
           duration: const Duration(milliseconds: 100),
@@ -84,73 +84,34 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+     _audioUtils.stopAll();
+    if (state == AppLifecycleState.resumed) {
+      // Halaman menjadi aktif kembali
+       _audioUtils.play("backsound", loop: true);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Hapus observer
     _audioUtils.stopAll();
 
     List<String> animations = ['sound'];
     for (String v in animations) {
       _animationController[v]!.dispose();
     }
-    
-    for (int i = 1; i <= 4; i++) {
+
+    for (int i = 1; i <= _listGame.length; i++) {
       _animationControllerPlay[i]!.dispose();
       _animationController[i]!.dispose();
     }
-    
+
     super.dispose();
   }
-
-  Widget _sectionTop(){
-    return Container(
-        padding: EdgeInsets.all(16.0),
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              child: Container(),
-            ),
-            GestureDetector(
-              onTapDown: (_) {
-                  _audioUtils.play("click");
-                  _animationController['sound']!.forward();
-                  setState(() {
-                    _soundMode = !_soundMode;
-
-                    if (_soundMode) {
-                        _audioUtils.play("backsound", loop: true);
-                    } else {
-                        _audioUtils.stop("backsound");
-                    }
-                  });
-              },
-              onTapCancel: () {
-                _animationController['sound']!.reverse();
-              },
-              child: AnimatedBuilder(
-                animation: _animation['sound']!,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _animation['sound']!.value,
-                    child: child,
-                  );
-                },
-                child: Card(
-                  color: whiteOpacity, // Hitam transparan
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(100), // Oval
-                  ),
-                  child: Icon(
-                    _soundMode ? Icons.volume_up : Icons.volume_off, // Ikon rumah
-                    size: 60.0, // Ukuran ikon
-                    color: darkBrown, // Warna ikon
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-    );
-  }
-
+ 
   Widget _sectionBottom(){
     return SectionBottom(
           animationController: _animationController,
@@ -180,10 +141,13 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
   return GestureDetector(
     onTapDown: (_) {
       _animationControllerPlay[i]!.forward();
-
+      
       Future.delayed(const Duration(milliseconds: 250), () {
         if (mounted) {
-          Navigator.pushNamed(context, item['page']);
+          _audioUtils.setVolume("backsound", 0.3);
+          Navigator.pushNamed(context, item['page']).then((_) {
+            _audioUtils.setVolume("backsound", 1.0);
+          });
         }
       });
     },
@@ -225,11 +189,6 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-
-    double screenWidth = MediaQuery.of(context).size.width;
-    // double screenHeight = MediaQuery.of.context).size.height;
-
-    // _backSoundControll(context);
     
     return WillPopScope(
       onWillPop: () async {
@@ -264,15 +223,21 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
               ),
               Column(
                 children: [
+                  SizedBox(
+                    height: 50.0,
+                  ),
                   SvgPicture.asset(
                       utilItemImageAssetName('dinosaurbymocu'),
                       height: 100.0,
+                  ),
+                   SizedBox(
+                    height: 25.0,
                   ),
                   Expanded(
                     // padding: EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
                     child: GridView.count(
                       crossAxisCount: 1, // Jumlah kolom
-                      childAspectRatio: 2.5, // Sesuaikan rasio tinggi
+                      childAspectRatio: 4.0, // Sesuaikan rasio tinggi
                       children: _listGame.asMap().entries.map((entry) {
                         int index = entry.key;
                         Map<String, dynamic> item = entry.value;
@@ -285,19 +250,14 @@ class _GamesState extends State<Games> with TickerProviderStateMixin {
               ,
                 Consumer<ActionProvider>(
                   builder: (context, model, child) {
-                    
-                    // if(model.execAction["sound"] != null){
-                    //     if (model.execAction["sound"]! == true){
-                    //       _audioUtils.play("backsound", loop: true);
-                    //       _audioUtils.setVolume("backsound", 0.3);
-                    //     } else {
-                    //       _audioUtils.stop("backsound");
-                    //     }
-                    // } else if(model.execAction["valume"] != null){
-                    //     if (model.execAction["valume"] == true) {
-                    //         _audioUtils.setVolume("backsound", 1.0);
-                    //     }
-                    // }
+                    if(model.execAction["sound"] != null){
+                        if (model.execAction["sound"]! == true){
+                          _audioUtils.play("backsound", loop: true);
+                          _audioUtils.setVolume("backsound", 0.3);
+                        } else {
+                          _audioUtils.stop("backsound");
+                        }
+                    }
 
                     return SizedBox.shrink();
                   },

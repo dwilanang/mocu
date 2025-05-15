@@ -1,5 +1,5 @@
 import 'dart:math';
-
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:rive/rive.dart';
@@ -14,6 +14,7 @@ import 'package:mocu/widget/rating.dart';
 import 'package:mocu/widget/sectionbottom.dart';
 import 'package:mocu/widget/sectiontop.dart';
 import 'package:mocu/widget/countdowncompleted.dart';
+import 'package:mocu/provider/action.dart';
 
 class YummyYucky extends StatefulWidget {
   const YummyYucky({super.key});
@@ -391,12 +392,7 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
             _animationController['sound']!.forward();
             setState(() {
               _soundMode = !_soundMode;
-
-              if (_soundMode) {
-                  _audioUtils.play("backsound", loop: true);
-              } else {
-                  _audioUtils.stop("backsound");
-              }
+              context.read<ActionProvider>().setExecAction("sound", _soundMode);
             });
           },
           onSoundTapCancel: (){

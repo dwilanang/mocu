@@ -6,6 +6,7 @@ import 'package:mocu/pages/matching.dart';
 import 'package:mocu/pages/yummy_yucky.dart';
 import 'package:mocu/pages/memory.dart';
 import 'package:mocu/pages/aboutdino.dart';
+import 'package:mocu/pages/crackegg.dart';
 // import 'package:matching/models/screen.dart';
 
 class AppRoutes {
@@ -22,16 +23,10 @@ class AppRoutes {
         return _materialRoute(const YummyYucky());
       case '/memory':
         return _materialRoute(const Memory());
-      case '/aboutdino':
+       case '/crack-egg':
+        return _materialRoute(const CrackEgg());
+      case '/about-dino':
         return _materialRoute(const AboutDino());
-      // case '/game3':
-      //   return _materialRoute(Game3(arguments: arguments));
-      // case '/game4':
-      //   return _materialRoute(Game4(arguments: arguments));
-      // case '/game5':
-      //   return _materialRoute(Game5(arguments: arguments));
-      // case '/reward':
-      //   return _materialRoute(Reward(arguments: arguments));
       default:
         return _materialRoute(const Welcome());
     }
