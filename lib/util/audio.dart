@@ -30,7 +30,9 @@ class AudioUtils {
 
   Future<void> stop(String name) async {
     if (_soundPlayers.containsKey(name)) {
-      await _soundPlayers[name]!.stop();
+      try {
+        await _soundPlayers[name]!.stop();
+      } catch (_) {}
       _soundPlayers.remove(name);
     }
   }
@@ -38,10 +40,15 @@ class AudioUtils {
   Future<void> stopAll() async {
     if (_soundPlayers.isEmpty) return;
 
-    for (var entry in _soundPlayers.entries.toList()) {
-      await entry.value.stop();
-      _soundPlayers.remove(entry.key);
+    // Buat salinan list agar tidak terjadi concurrent modification
+    final players = List<AudioPlayer>.from(_soundPlayers.values);
+
+    for (var player in players) {
+      try {
+        await player.stop();
+      } catch (_) {}
     }
+    _soundPlayers.clear();
   }
 
   Future<void> setVolume(String name, double volume) async {

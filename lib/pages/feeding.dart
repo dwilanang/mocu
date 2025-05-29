@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:rive/rive.dart';
@@ -16,15 +17,15 @@ import 'package:mocu/widget/sectiontop.dart';
 import 'package:mocu/widget/countdowncompleted.dart';
 import 'package:mocu/provider/action.dart';
 
-class YummyYucky extends StatefulWidget {
-  const YummyYucky({super.key});
+class Feeding extends StatefulWidget {
+  const Feeding({super.key});
 
   @override
   // ignore: library_private_types_in_public_api
-  _YummyYuckyState createState() => _YummyYuckyState();
+  _FeedingState createState() => _FeedingState();
 }
 
-class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
+class _FeedingState extends State<Feeding> with TickerProviderStateMixin {
 
   final AudioUtils _audioUtils = AudioUtils();
 
@@ -73,7 +74,7 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
 
   final Map<int, List<int>> _itemsFood = {
     1: [6, 4, 1, 3, 5, 2, 7],
-    2: [3, 2, 5, 1, 6, 3, 8],
+    2: [4, 2, 5, 1, 6, 3, 8],
   };
 
   final ScrollController _scrollController = ScrollController();
@@ -81,6 +82,12 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // Kunci ke portrait saat halaman ini dibuka
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
 
     _limitPlay[_levelPlay] = _limitPlayLevel[_levelPlay]!;
 
@@ -135,7 +142,7 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
 
   Widget _itemFoodAsset(int foodId){
       return  SvgPicture.asset(
-        utilItemImageAssetName('yummy/$foodId'),
+        utilItemImageAssetName('feeding/$foodId'),
         height: 125.0,
       );
   }
@@ -232,39 +239,39 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
               : Row(
                   children: [
                     // Tombol Panah Kiri
-                    IconButton(
-                      icon: Icon(Icons.arrow_left, size: 40.0, color: white),
-                      onPressed: () {
-                        _scrollController.animateTo(
-                          _scrollController.offset - 100, // Geser ke kiri 100 piksel
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      },
-                    ),
+                    // IconButton(
+                    //   icon: Icon(Icons.arrow_left, size: 40.0, color: white),
+                    //   onPressed: () {
+                    //     _scrollController.animateTo(
+                    //       _scrollController.offset - 100, // Geser ke kiri 100 piksel
+                    //       duration: const Duration(milliseconds: 300),
+                    //       curve: Curves.easeInOut,
+                    //     );
+                    //   },
+                    // ),
                     // Daftar Makanan
-                    Expanded(
-                       child: SingleChildScrollView(
-                        controller: _scrollController,
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: (_itemsFood[_levelPlay] as List<int>).map((foodId) {
-                            return _itemDrag(foodId);
-                          }).toList(),
-                        ),
-                      ),
-                    ),
+                    // Expanded(
+                    //    child: SingleChildScrollView(
+                    //     controller: _scrollController,
+                    //     scrollDirection: Axis.horizontal,
+                    //     child: Row(
+                    //       children: (_itemsFood[_levelPlay] as List<int>).map((foodId) {
+                    //         return _itemDrag(foodId);
+                    //       }).toList(),
+                    //     ),
+                    //   ),
+                    // ),
                     // Tombol Panah Kanan
-                    IconButton(
-                      icon: Icon(Icons.arrow_right, size: 40.0, color: white),
-                      onPressed: () {
-                        _scrollController.animateTo(
-                          _scrollController.offset + 100, // Geser ke kanan 100 piksel
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
-                      },
-                    ),
+                    // IconButton(
+                    //   icon: Icon(Icons.arrow_right, size: 40.0, color: white),
+                    //   onPressed: () {
+                    //     _scrollController.animateTo(
+                    //       _scrollController.offset + 100, // Geser ke kanan 100 piksel
+                    //       duration: const Duration(milliseconds: 300),
+                    //       curve: Curves.easeInOut,
+                    //     );
+                    //   },
+                    // ),
                   ],
                 ),
         ),
@@ -709,29 +716,28 @@ class _YummyYuckyState extends State<YummyYucky> with TickerProviderStateMixin {
                 child: FittedBox(
                   fit: BoxFit.cover,
                   child: SvgPicture.asset(
-                    utilItemImageAssetName('bg$_levelPlay'),
+                    utilItemImageAssetName('feeding/bg$_levelPlay'),
                     width: screenWidth,
-                    fit: BoxFit.fill,
                   ),
                 ),
               ),
-              SizedBox(
-                height: double.infinity,
-                width: double.infinity,
-                child: FittedBox(
-                  fit: BoxFit.cover,
-                  child: SvgPicture.asset(
-                    utilItemImageAssetName('bgoverlay'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
+              // SizedBox(
+              //   height: double.infinity,
+              //   width: double.infinity,
+              //   child: FittedBox(
+              //     fit: BoxFit.cover,
+              //     child: SvgPicture.asset(
+              //       utilItemImageAssetName('bgoverlay'),
+              //       fit: BoxFit.cover,
+              //     ),
+              //   ),
+              // ),
               
               _itemPlay(screenWidth, screenHeight)
             ],
           )
         ),
-        bottomSheet: _sectionBottom(),
+        // bottomSheet: _sectionBottom(),
       ),
     );
   }

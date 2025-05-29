@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mocu/pages/welcome.dart';
 import 'package:mocu/pages/games.dart';
 import 'package:mocu/pages/matching.dart';
-import 'package:mocu/pages/yummy_yucky.dart';
+import 'package:mocu/pages/feeding.dart';
 import 'package:mocu/pages/memory.dart';
 import 'package:mocu/pages/aboutdino.dart';
 import 'package:mocu/pages/crackegg.dart';
@@ -19,8 +19,8 @@ class AppRoutes {
         return _materialRoute(const Games());
       case '/matching':
         return _materialRoute(const Matching());
-      case '/yummy-yucky':
-        return _materialRoute(const YummyYucky());
+      case '/feeding':
+        return _materialRoute(const Feeding());
       case '/memory':
         return _materialRoute(const Memory());
        case '/crack-egg':

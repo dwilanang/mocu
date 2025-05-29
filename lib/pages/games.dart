@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mocu/constant.dart';
@@ -32,7 +33,7 @@ class _GamesState extends State<Games> with TickerProviderStateMixin, WidgetsBin
 
   final List<Map<String, dynamic>> _listGame = [
       {'title': "Matching", 'page':'/matching'}, 
-      {'title': "Yummy", 'page':'/yummy-yucky'}, 
+      {'title': "Feeding", 'page':'/feeding'}, 
       {'title': "Memory", 'page':'/memory'}, 
       // {'title': "Crack Egg", 'page':'/crack-egg'}, 
       {'title': "About Dino", 'page':'/about-dino'}
@@ -43,6 +44,12 @@ class _GamesState extends State<Games> with TickerProviderStateMixin, WidgetsBin
   @override
   void initState() {
     super.initState();
+
+    // Kunci ke portrait saat halaman ini dibuka
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
 
     // Tambahkan observer untuk mendeteksi perubahan lifecycle
     WidgetsBinding.instance.addObserver(this);
@@ -88,7 +95,7 @@ class _GamesState extends State<Games> with TickerProviderStateMixin, WidgetsBin
     super.didChangeAppLifecycleState(state);
 
      _audioUtils.stopAll();
-    if (state == AppLifecycleState.resumed) {
+    if (_soundMode && state == AppLifecycleState.resumed) {
       // Halaman menjadi aktif kembali
        _audioUtils.play("backsound", loop: true);
     }
